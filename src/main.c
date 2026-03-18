@@ -19,8 +19,8 @@ void ajouterToken(struct TokenListe *liste, char type[1024], char value[1024])
 {
     struct Token *current = liste->head;
     struct Token *newToken = (struct Token *)malloc(sizeof(struct Token));
-    strcpy_s(newToken->type, 1024, type);
-    strcpy_s(newToken->value, 1024, value);
+    strcpy(newToken->type, type);
+    strcpy(newToken->value, value);
     newToken->next = NULL;
 
     if (current == NULL)
@@ -78,10 +78,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error: Could not open file %s\n", argv[1]);
         return EXIT_FAILURE;
     }
-    else
-    {
-        printf("Le fichier a bien ete ouvert\n");
-    }
 
     int buffer[1024];
     int c = fgetc(input_file);
@@ -108,16 +104,16 @@ int main(int argc, char *argv[])
         buffer[i] = '\0'; // Null-terminate the string
         i = 0;            // Reset index for the next token
         if(isalpha(buffer[0])){
-            strcpy_s(tokenType, 1024, "IDENTIFIER");
-            strcpy_s(tokenValue, 1024, stringify(buffer));
+            strcpy(tokenType, "IDENTIFIER");
+            strcpy(tokenValue, stringify(buffer));
         }
         else if(isdigit(buffer[0])){
-            strcpy_s(tokenType, 1024, "NUMBER");
-            strcpy_s(tokenValue, 1024, stringify(buffer));
+            strcpy(tokenType, "NUMBER");
+            strcpy(tokenValue, stringify(buffer));
         }
         else{
-            strcpy_s(tokenType, 1024, "SYMBOL");
-            strcpy_s(tokenValue, 1024, stringify(buffer));
+            strcpy(tokenType, "SYMBOL");
+            strcpy(tokenValue, stringify(buffer));
         }
         ajouterToken(&tokenList, tokenType, tokenValue);
         c = fgetc(input_file);
@@ -134,7 +130,7 @@ int main(int argc, char *argv[])
     }
 
     FILE *output_file = fopen("./src/output.asm", "w");
-    fprintf(output_file, "section .text\nglobal main\nmain:\n   xor rax, rax\n   mov rbp, rsp\n");
+    fprintf(output_file, "section .text\nglobal _start\n_start:\n");
 
     while(current != NULL){
         if(strcmp(current->type, "IDENTIFIER") == 0)
@@ -142,8 +138,9 @@ int main(int argc, char *argv[])
             if(strcmp(current->value, "return") == 0){
                 current = current->next;
                 if(current != NULL && strcmp(current->type, "NUMBER") == 0){
-                    fprintf(output_file, "   mov eax, %s\n", current->value);
-                    fprintf(output_file, "   ret\n");
+                    fprintf(output_file, "   mov rax, 60\n");
+                    fprintf(output_file, "   mov rdi, %s\n", current->value);
+                    fprintf(output_file, "   syscall\n");
                 }else{
                     fprintf(stderr, "Error: Expected a number after 'return'\n");
                     fclose(input_file);
@@ -159,8 +156,8 @@ int main(int argc, char *argv[])
     }
 
     fclose(output_file);
-    system("nasm -f win64 ./src/output.asm -o ./src/output.o");
-    system("gcc ./src/output.o -o ./src/output.exe -mconsole");
+    system("nasm -f elf64 ./src/output.asm -o ./src/output.o");
+    system("ld ./src/output.o -o ./src/output -no-pie");
 
     // Close the input file
     fclose(input_file);
