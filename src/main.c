@@ -1,3 +1,7 @@
+/*TODO: Differencier identifiant et mot-clé,
+vérifier qu'a la fin du return il y ai bien un saut de ligne,
+vérifier la taille du nombre que l'utilisateur souhaite return -> doit être inférieur à 255*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
