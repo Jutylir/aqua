@@ -128,26 +128,39 @@ int main(int argc, char *argv[])
 
     struct Token *current = tokenList.head;
     if(current == NULL){
-        fprintf(stderr, "Error: Expected an identifier at the beginning of the file\n");
+        fprintf(stderr, "Error: Expected an identifier\n");
         fclose(input_file);
         return EXIT_FAILURE;
     }
+
+    FILE *output_file = fopen("./src/output.asm", "w");
+    fprintf(output_file, "section .text\nglobal main\nmain:\n   xor rax, rax\n   mov rbp, rsp\n");
+
     while(current != NULL){
-        if(current->type == "IDENTIFIER")
+        if(strcmp(current->type, "IDENTIFIER") == 0)
         {
             if(strcmp(current->value, "return") == 0){
                 current = current->next;
-                if(current == NULL || current->type != "NUMBER"){
+                if(current != NULL && strcmp(current->type, "NUMBER") == 0){
+                    fprintf(output_file, "   mov eax, %s\n", current->value);
+                    fprintf(output_file, "   ret\n");
+                }else{
                     fprintf(stderr, "Error: Expected a number after 'return'\n");
                     fclose(input_file);
                     return EXIT_FAILURE;
-                }else{
-                    printf("Return value: %s\n", current->value);
                 }
             }
+        }else{
+            fprintf(stderr, "Error: Expected an identifier\n");
+            fclose(input_file);
+            return EXIT_FAILURE;
         }
         current = current->next;
     }
+
+    fclose(output_file);
+    system("nasm -f win64 ./src/output.asm -o ./src/output.o");
+    system("gcc ./src/output.o -o ./src/output.exe -mconsole");
 
     // Close the input file
     fclose(input_file);
