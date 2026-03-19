@@ -1,1 +1,2 @@
-return 70 
+a = 2
+return a
