@@ -1,7 +1,5 @@
-/*TODO: Differencier identifiant et mot-clé,
-vérifier qu'a la fin du return il y ai bien un saut de ligne,
-vérifier la taille du nombre que l'utilisateur souhaite return -> doit être inférieur à 255*/
-
+/*TODO: Differencier identifiant et mot-clé (a faire quand on se penchera sur la création de variable)
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,8 +61,6 @@ char *stringify(int buffer[1024])
     return str;
 }
 
-
-
 int main(int argc, char *argv[])
 {
 
@@ -97,7 +93,7 @@ int main(int argc, char *argv[])
     tokenList.head = NULL;
     char tokenType[1024];
     char tokenValue[1024] = {0};
-    do //Tokenization loop
+    do // Tokenization loop
     {
         while (!isspace(c) && c != '\n' && c != EOF)
         {
@@ -107,18 +103,25 @@ int main(int argc, char *argv[])
         }
         buffer[i] = '\0'; // Null-terminate the string
         i = 0;            // Reset index for the next token
-        if(isalpha(buffer[0])){
+        if (isalpha(buffer[0]))
+        {
             strcpy(tokenType, "IDENTIFIER");
             strcpy(tokenValue, stringify(buffer));
         }
-        else if(isdigit(buffer[0])){
+        else if (isdigit(buffer[0]))
+        {
             strcpy(tokenType, "NUMBER");
             strcpy(tokenValue, stringify(buffer));
+        }else if (c == '\n')
+        {
+            strcpy(tokenType, "NEWLINE");
+            strcpy(tokenValue, "\0");
         }
-        else{
-            strcpy(tokenType, "SYMBOL");
-            strcpy(tokenValue, stringify(buffer));
-        }
+        // else
+        // {
+        //     strcpy(tokenType, "SYMBOL");
+        //     strcpy(tokenValue, stringify(buffer));
+        // }
         ajouterToken(&tokenList, tokenType, tokenValue);
         c = fgetc(input_file);
     } while (c != EOF);
@@ -127,7 +130,8 @@ int main(int argc, char *argv[])
     afficherTokens(&tokenList);
 
     struct Token *current = tokenList.head;
-    if(current == NULL){
+    if (current == NULL)
+    {
         fprintf(stderr, "Error: Expected an identifier\n");
         fclose(input_file);
         return EXIT_FAILURE;
@@ -136,26 +140,51 @@ int main(int argc, char *argv[])
     FILE *output_file = fopen("./src/output.asm", "w");
     fprintf(output_file, "section .text\nglobal _start\n_start:\n");
 
-    while(current != NULL){
-        if(strcmp(current->type, "IDENTIFIER") == 0)
+    while (current != NULL)
+    {
+        if (strcmp(current->type, "IDENTIFIER") == 0)
         {
-            if(strcmp(current->value, "return") == 0){
+            if (strcmp(current->value, "return") == 0)
+            {
                 current = current->next;
-                if(current != NULL && strcmp(current->type, "NUMBER") == 0){
-                    fprintf(output_file, "   mov rax, 60\n");
-                    fprintf(output_file, "   mov rdi, %s\n", current->value);
-                    fprintf(output_file, "   syscall\n");
-                }else{
-                    fprintf(stderr, "Error: Expected a number after 'return'\n");
+                if (current != NULL && strcmp(current->type, "NUMBER") == 0 && atoi(current->value) < 255)
+                {
+                    if (current->next != NULL)
+                    {
+                        if (strcmp(current->next->type, "NEWLINE") == 0)
+                        {
+                            fprintf(output_file, "   mov rax, 60\n");
+                            fprintf(output_file, "   mov rdi, %s\n", current->value);
+                            fprintf(output_file, "   syscall\n");
+                        }
+                        else
+                        {
+                            fprintf(stderr, "Error: Unexpected token after return value\n");
+                            fclose(input_file);
+                            return EXIT_FAILURE;
+                        }
+                    }
+                    else
+                    {
+                        fprintf(output_file, "   mov rax, 60\n");
+                        fprintf(output_file, "   mov rdi, %s\n", current->value);
+                        fprintf(output_file, "   syscall\n");
+                    }
+                }
+                else
+                {
+                    fprintf(stderr, "Error: Expected a expression after return\n");
                     fclose(input_file);
                     return EXIT_FAILURE;
                 }
             }
-        }else{
-            fprintf(stderr, "Error: Expected an identifier\n");
-            fclose(input_file);
-            return EXIT_FAILURE;
         }
+        // else
+        // {
+        //     fprintf(stderr, "Error: Expected an identifier\n");
+        //     fclose(input_file);
+        //     return EXIT_FAILURE;
+        // }
         current = current->next;
     }
 
