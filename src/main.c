@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
     char *statements[] = {"return", NULL};
 
     int i = 0;
-    int stackPosCount = 0;
+    int stackPosCount = 1;
     struct TokenListe tokenList;
     tokenList.head = NULL;
     char tokenType[1024];
@@ -226,12 +226,12 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    struct identifierListe *identifierListe;
-    identifierListe->head = NULL;
+    struct identifierListe identifierListe;
+    identifierListe.head = NULL;
     int position;
 
     FILE *output_file = fopen("./src/output.asm", "w");
-    fprintf(output_file, "section .text\nglobal _start\n_start:\n");
+    fprintf(output_file, "section .text\nglobal _start\n_start:\n   push rbp\n   mov rbp, rsp\n");
 
     while (current != NULL)
     {
@@ -264,15 +264,15 @@ int main(int argc, char *argv[])
                         fprintf(output_file, "   syscall\n");
                     }
                 }
-                else if (current != NULL && strcmp(current->type, "IDENTIFIER"))
+                else if (current != NULL && strcmp(current->type, "IDENTIFIER") == 0 && isDeclared(current->value, &identifierListe) == 1)
                 {
-                    position = stackPos(current->value, identifierListe);
+                    position = stackPos(current->value, &identifierListe);
                     if (current->next != NULL)
                     {
                         if (strcmp(current->next->type, "NEWLINE") == 0)
                         {
-                            fprintf(output_file, "   mov eax, 60");
-                            fprintf(output_file, "   mov rdi, [rbp - %d]", position * 4);
+                            fprintf(output_file, "   mov rax, 60\n");
+                            fprintf(output_file, "   mov rdi, [rbp - %d]\n", position * 8);
                             fprintf(output_file, "   syscall\n");
                         }
                         else
@@ -284,8 +284,8 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        fprintf(output_file, "   mov eax, 60");
-                        fprintf(output_file, "   mov rdi, [rbp - %d]", position * 4);
+                        fprintf(output_file, "   mov rax, 60\n");
+                        fprintf(output_file, "   mov rdi, [rbp - %d]\n", position * 8);
                         fprintf(output_file, "   syscall\n");
                     }
                 }
@@ -304,16 +304,17 @@ int main(int argc, char *argv[])
 
                 if (strcmp(current->next->value, "=") == 0 && strcmp(current->next->next->type, "NUMBER") == 0)
                 {
-                    if (isDeclared(current->value, identifierListe) == 1)
+                    if (isDeclared(current->value, &identifierListe) == 1)
                     {
-                        position = stackPos(current->value, identifierListe);
-                        fprintf(output_file, "   mov eax, %s", current->next->next->value);
+                        position = stackPos(current->value, &identifierListe);
+                        fprintf(output_file, "   mov rax, %s", current->next->next->value);
                         fprintf(output_file, "   mov [rbp - %d]", position * 4);
                     }
                     else
                     {
-                        fprintf(output_file, "   mov eax, %s\n", current->next->next->value);
-                        fprintf(output_file, "   push eax\n");
+                        fprintf(output_file, "   mov rax, %s\n", current->next->next->value);
+                        fprintf(output_file, "   push rax\n");
+                        ajouterIdentifier(&identifierListe, current->value, stackPosCount);
                         stackPosCount++;
                     }
                 }
