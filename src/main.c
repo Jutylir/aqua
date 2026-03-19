@@ -1,4 +1,5 @@
-/*TODO: Differencier identifiant et mot-clé (a faire quand on se penchera sur la création de variable)
+/*TODO: Trouver une manière de rendre le code plus propre, par exemple essayer de mettre dans une fonction le check de fin de ligne
+Vérifier si il serait préférable de free() tous nos pointeurs.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,11 +207,6 @@ int main(int argc, char *argv[])
             strcpy(tokenType, "NEWLINE");
             strcpy(tokenValue, "\0");
         }
-        // else
-        // {
-        //     strcpy(tokenType, "SYMBOL");
-        //     strcpy(tokenValue, stringify(buffer));
-        // }
         ajouterToken(&tokenList, tokenType, tokenValue);
         c = fgetc(input_file);
     } while (c != EOF);
