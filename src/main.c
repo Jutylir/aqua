@@ -106,6 +106,18 @@ int isStatement(char *value, char **statements)
     return 0;
 }
 
+int isSymbol(char *value, char **symbols)
+{
+    for (int i = 0; symbols[i] != NULL; i++)
+    {
+        if (strcmp(symbols[i], value) == 0)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int isDeclared(char *name, struct identifierListe *liste)
 {
     struct identifier *current = liste->head;
@@ -132,6 +144,22 @@ int stackPos(char *name, struct identifierListe *liste)
         current = current->next;
     }
     return -1;
+}
+
+int isEndOfLine(struct Token *token)
+{
+    if (token->next == NULL)
+    {
+        return 1;
+    }
+    else if (strcmp(token->next->type, "NEWLINE") == 0)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 int main(int argc, char *argv[])
@@ -162,6 +190,7 @@ int main(int argc, char *argv[])
     }
 
     char *statements[] = {"return", NULL};
+    char *symbols[] = {"=", "+", "-", "/", "\\", "'", "''", "\"", "\"\"", "&", "{", "}", "{}", "(", ")", "*", "()", "**", "%", ".", "!",">",">=","<","<=","++","--","+=","-=","[","]","[]", NULL};
 
     int i = 0;
     int stackPosCount = 1;
@@ -169,46 +198,109 @@ int main(int argc, char *argv[])
     tokenList.head = NULL;
     char tokenType[1024];
     char tokenValue[1024] = {0};
-    do // Tokenization loop
+    do
     {
-        while (!isspace(c) && c != '\n' && c != EOF)
+        // Sauter espaces et tabulations
+        while (c == ' ' || c == '\t')
         {
-            buffer[i] = c;
-            i++;
             c = fgetc(input_file);
         }
-        buffer[i] = '\0'; // Null-terminate the string
-        i = 0;            // Reset index for the next token
+
+        // Newline
+        if (c == '\n')
+        {
+            strcpy(tokenType, "NEWLINE");
+            strcpy(tokenValue, "\0");
+            ajouterToken(&tokenList, tokenType, tokenValue);
+            c = fgetc(input_file);
+            continue;
+        }
+
+        if (c == EOF)
+            break;
+
+        // Lire le token selon son type de départ
+        if (isalpha(c))
+        {
+            // IDENTIFIER : lettres uniquement, stop au chiffre ou symbole
+            while (isalpha(c) || isdigit(c))
+            {
+                buffer[i++] = c;
+                c = fgetc(input_file);
+            }
+        }
+        else if (isdigit(c))
+        {
+            // NUMBER : chiffres uniquement, stop à la lettre ou symbole
+            while (isdigit(c))
+            {
+                buffer[i++] = c;
+                c = fgetc(input_file);
+            }
+            // Si le char suivant est une lettre → erreur lexicale "65er"
+            if (isalpha(c))
+            {
+                fprintf(stderr, "Erreur lexicale : nombre invalide\n");
+            }
+        }
+        else if (ispunct(c))
+        {
+            // SYMBOL : consomme les symboles consécutifs (pour ==, !=, ->)
+            while (ispunct(c) && !isspace(c) && c != EOF)
+            {
+                buffer[i++] = c;
+                c = fgetc(input_file);
+            }
+        }
+
+        buffer[i] = '\0';
+        i = 0;
+
+        if (buffer[0] == '\0')
+            continue;
+
         if (isalpha(buffer[0]))
         {
             if (isStatement(stringify(buffer), statements) == 1)
             {
                 strcpy(tokenType, "STATEMENT");
                 strcpy(tokenValue, stringify(buffer));
+                ajouterToken(&tokenList, tokenType, tokenValue);
             }
             else
             {
                 strcpy(tokenType, "IDENTIFIER");
                 strcpy(tokenValue, stringify(buffer));
+                ajouterToken(&tokenList, tokenType, tokenValue);
             }
         }
         else if (isdigit(buffer[0]))
         {
             strcpy(tokenType, "NUMBER");
             strcpy(tokenValue, stringify(buffer));
+            ajouterToken(&tokenList, tokenType, tokenValue);
         }
         else if (ispunct(buffer[0]))
         {
-            strcpy(tokenType, "SYMBOL");
-            strcpy(tokenValue, stringify(buffer));
+            if (isSymbol(stringify(buffer), symbols) == 1)
+            {
+                strcpy(tokenType, "SYMBOL");
+                strcpy(tokenValue, stringify(buffer));
+                ajouterToken(&tokenList, tokenType, tokenValue);
+            }
+            else
+            {
+                fprintf(stderr, "Error: Unknown token\n");
+                fclose(input_file);
+                return EXIT_FAILURE;
+            }
         }
-        else if (c == '\n')
+        else
         {
-            strcpy(tokenType, "NEWLINE");
-            strcpy(tokenValue, "\0");
+            fprintf(stderr, "Error: Unknown token\n");
+            fclose(input_file);
+            return EXIT_FAILURE;
         }
-        ajouterToken(&tokenList, tokenType, tokenValue);
-        c = fgetc(input_file);
     } while (c != EOF);
 
     // Display the tokens
@@ -238,56 +330,38 @@ int main(int argc, char *argv[])
                 current = current->next;
                 if (current != NULL && strcmp(current->type, "NUMBER") == 0 && atoi(current->value) < 255)
                 {
-                    if (current->next != NULL)
-                    {
-                        if (strcmp(current->next->type, "NEWLINE") == 0)
-                        {
-                            fprintf(output_file, "   mov rax, 60\n");
-                            fprintf(output_file, "   mov rdi, %s\n", current->value);
-                            fprintf(output_file, "   syscall\n");
-                        }
-                        else
-                        {
-                            fprintf(stderr, "Error: Unexpected token after return value\n");
-                            fclose(input_file);
-                            return EXIT_FAILURE;
-                        }
-                    }
-                    else
+                    if (isEndOfLine(current) == 1)
                     {
                         fprintf(output_file, "   mov rax, 60\n");
                         fprintf(output_file, "   mov rdi, %s\n", current->value);
                         fprintf(output_file, "   syscall\n");
                     }
+                    else
+                    {
+                        fprintf(stderr, "Error: Unexpected token after return value\n");
+                        fclose(input_file);
+                        return EXIT_FAILURE;
+                    }
                 }
                 else if (current != NULL && strcmp(current->type, "IDENTIFIER") == 0 && isDeclared(current->value, &identifierListe) == 1)
                 {
                     position = stackPos(current->value, &identifierListe);
-                    if (current->next != NULL)
-                    {
-                        if (strcmp(current->next->type, "NEWLINE") == 0)
-                        {
-                            fprintf(output_file, "   mov rax, 60\n");
-                            fprintf(output_file, "   mov rdi, [rbp - %d]\n", position * 8);
-                            fprintf(output_file, "   syscall\n");
-                        }
-                        else
-                        {
-                            fprintf(stderr, "Error: Unexpected token after return value\n");
-                            fclose(input_file);
-                            return EXIT_FAILURE;
-                        }
-                    }
-                    else
+                    if (isEndOfLine(current))
                     {
                         fprintf(output_file, "   mov rax, 60\n");
                         fprintf(output_file, "   mov rdi, [rbp - %d]\n", position * 8);
                         fprintf(output_file, "   syscall\n");
                     }
+                    else
+                    {
+                        fprintf(stderr, "Error: Unexpected token after return value\n");
+                        fclose(input_file);
+                        return EXIT_FAILURE;
+                    }
                 }
                 else
                 {
-                    fprintf(stderr, "Error: Expected a expression after return\n");
+                    fprintf(stderr, "Error: Expected an expression after return\n");
                     fclose(input_file);
                     return EXIT_FAILURE;
                 }
@@ -300,19 +374,34 @@ int main(int argc, char *argv[])
 
                 if (strcmp(current->next->value, "=") == 0 && strcmp(current->next->next->type, "NUMBER") == 0)
                 {
-                    if (isDeclared(current->value, &identifierListe) == 1)
+                    if (isEndOfLine(current->next->next) == 1)
                     {
-                        position = stackPos(current->value, &identifierListe);
-                        fprintf(output_file, "   mov rax, %s", current->next->next->value);
-                        fprintf(output_file, "   mov [rbp - %d]", position * 4);
+                        if (isDeclared(current->value, &identifierListe) == 1)
+                        {
+                            position = stackPos(current->value, &identifierListe);
+                            fprintf(output_file, "   mov rax, %s", current->next->next->value);
+                            fprintf(output_file, "   mov [rbp - %d]", position * 4);
+                        }
+                        else
+                        {
+                            fprintf(output_file, "   mov rax, %s\n", current->next->next->value);
+                            fprintf(output_file, "   push rax\n");
+                            ajouterIdentifier(&identifierListe, current->value, stackPosCount);
+                            stackPosCount++;
+                        }
                     }
                     else
                     {
-                        fprintf(output_file, "   mov rax, %s\n", current->next->next->value);
-                        fprintf(output_file, "   push rax\n");
-                        ajouterIdentifier(&identifierListe, current->value, stackPosCount);
-                        stackPosCount++;
+                        fprintf(stderr, "Error: Unexpected token after identifier value\n");
+                        fclose(input_file);
+                        return EXIT_FAILURE;
                     }
+                }
+                else
+                {
+                    fprintf(stderr, "Error: Unexpected token or end of line\n");
+                    fclose(input_file);
+                    return EXIT_FAILURE;
                 }
             }
         }
