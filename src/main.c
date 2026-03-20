@@ -106,6 +106,18 @@ int isStatement(char *value, char **statements)
     return 0;
 }
 
+int isSymbol(char *value, char **symbols)
+{
+    for (int i = 0; symbols[i] != NULL; i++)
+    {
+        if (strcmp(symbols[i], value) == 0)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int isDeclared(char *name, struct identifierListe *liste)
 {
     struct identifier *current = liste->head;
@@ -178,6 +190,7 @@ int main(int argc, char *argv[])
     }
 
     char *statements[] = {"return", NULL};
+    char *symbols[] = {"=", "+", "-", "/", "\\", "'", "''", "\"", "\"\"", "&", "{", "}", "{}", "(", ")", "*", "()", "**", "%", ".", "!",">",">=","<","<=","++","--","+=","-=","[","]","[]", NULL};
 
     int i = 0;
     int stackPosCount = 1;
@@ -269,9 +282,24 @@ int main(int argc, char *argv[])
         }
         else if (ispunct(buffer[0]))
         {
-            strcpy(tokenType, "SYMBOL");
-            strcpy(tokenValue, stringify(buffer));
-            ajouterToken(&tokenList, tokenType, tokenValue);
+            if (isSymbol(stringify(buffer), symbols) == 1)
+            {
+                strcpy(tokenType, "SYMBOL");
+                strcpy(tokenValue, stringify(buffer));
+                ajouterToken(&tokenList, tokenType, tokenValue);
+            }
+            else
+            {
+                fprintf(stderr, "Error: Unknown token\n");
+                fclose(input_file);
+                return EXIT_FAILURE;
+            }
+        }
+        else
+        {
+            fprintf(stderr, "Error: Unknown token\n");
+            fclose(input_file);
+            return EXIT_FAILURE;
         }
     } while (c != EOF);
 
@@ -368,6 +396,12 @@ int main(int argc, char *argv[])
                         fclose(input_file);
                         return EXIT_FAILURE;
                     }
+                }
+                else
+                {
+                    fprintf(stderr, "Error: Unexpected token or end of line\n");
+                    fclose(input_file);
+                    return EXIT_FAILURE;
                 }
             }
         }
