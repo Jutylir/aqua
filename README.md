@@ -15,7 +15,6 @@ Aqua est un langage compilé minimaliste dont le compilateur génère de l'assem
 ```bash
 ./aqua <fichier.aq>        # compile et génère ./src/output
 ./src/output               # exécuter le binaire
-echo $?                    # récupérer la valeur de retour
 ```
 
 ---
