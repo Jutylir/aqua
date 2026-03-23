@@ -4,4 +4,9 @@ project(Aqua)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(aqua ./src/main.c)
+add_executable(aqua 
+./src/main.c 
+./src/generator.c
+./src/structs.c
+./src/tokenizer.c
+)
