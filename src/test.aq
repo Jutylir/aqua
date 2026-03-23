@@ -1,1 +1,2 @@
-return 69
+a = 69
+return a
