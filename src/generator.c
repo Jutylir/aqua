@@ -83,6 +83,7 @@ void freeIdentifierList(struct identifierListe *liste)
 
 void generator(FILE *input_file, struct TokenListe tokenList)
 {
+    int boucleCount = 0;
     struct Token *current = tokenList.head;
     if (current == NULL)
     {
@@ -106,45 +107,8 @@ void generator(FILE *input_file, struct TokenListe tokenList)
             if (strcmp(current->value, "return") == 0)
             {
                 current = current->next;
-                //     if (current != NULL && strcmp(current->type, "NUMBER") == 0 && atoi(current->value) < 255)
-                //     {
-                //         if (isEndOfLine(current) == 1)
-                //         {
-                //             fprintf(output_file, "   mov rax, 60\n");
-                //             fprintf(output_file, "   mov rdi, %s\n", current->value);
-                //             fprintf(output_file, "   syscall\n");
-                //         }
-                //         else
-                //         {
-                //             fprintf(stderr, "Error: Unexpected token after return value\n");
-                //             fclose(input_file);
-                //             exit(EXIT_FAILURE);
-                //         }
-                //     }
-                //     else if (current != NULL && strcmp(current->type, "IDENTIFIER") == 0 && isDeclared(current->value, &identifierListe) == 1)
-                //     {
-                //         position = stackPos(current->value, &identifierListe);
-                //         if (isEndOfLine(current))
-                //         {
-                //             fprintf(output_file, "   mov rax, 60\n");
-                //             fprintf(output_file, "   mov rdi, [rbp - %d]\n", position * 8);
-                //             fprintf(output_file, "   syscall\n");
-                //         }
-                //         else
-                //         {
-                //             fprintf(stderr, "Error: Unexpected token after return value\n");
-                //             fclose(input_file);
-                //             exit(EXIT_FAILURE);
-                //         }
-                //     }
-                //     else
-                //     {
-                //         fprintf(stderr, "Error: Expected an expression after return\n");
-                //         fclose(input_file);
-                //         exit(EXIT_FAILURE);
-                //     }
-                // }
-                parser(current, identifierListe, output_file);
+                current = parser(current, identifierListe, output_file, &boucleCount);
+                printf("fin de parsing\n");
                 fprintf(output_file, "   mov rdi, rax\n");
                 fprintf(output_file, "   mov rax, 60\n");
                 fprintf(output_file, "   syscall\n");
@@ -157,16 +121,19 @@ void generator(FILE *input_file, struct TokenListe tokenList)
 
                 if (strcmp(current->next->value, "=") == 0)
                 {
-                    parser(current->next->next, identifierListe, output_file);
                     if (isDeclared(current->value, &identifierListe) == 1)
                     {
                         position = stackPos(current->value, &identifierListe);
-                        fprintf(output_file, "   mov [rbp - %d], rax\n", position * 4);
+                        current = parser(current->next->next, identifierListe, output_file, &boucleCount);
+                        printf("fin de parsing\n");
+                        fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
                     }
                     else
                     {
-                        fprintf(output_file, "   push rax\n");
                         ajouterIdentifier(&identifierListe, current->value, stackPosCount);
+                        current = parser(current->next->next, identifierListe, output_file, &boucleCount);
+                        printf("fin de parsing\n");
+                        fprintf(output_file, "   push rax\n");
                         stackPosCount++;
                     }
                 }

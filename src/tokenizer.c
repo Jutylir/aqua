@@ -191,7 +191,7 @@ struct TokenListe tokenizer(FILE *input_file)
             exit(EXIT_FAILURE);
         }
     } while (c != EOF);
-    strcpy(tokenType, "EOL");
+    strcpy(tokenType, "EOF");
     strcpy(tokenValue, "\0");
     ajouterToken(&tokenList, tokenType, tokenValue);
     return tokenList;
