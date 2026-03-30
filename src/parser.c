@@ -89,21 +89,72 @@ struct Token *parser(struct Token *current, struct identifierListe identifierLis
             }
             else if (strcmp(current->value, "*") == 0)
             {
-                fprintf(output_file, "   push rax\n");
                 current = current->next;
-                parser(current, identifierListe, output_file, boucleCount);
-                fprintf(output_file, "   pop rbx\n");
+                if (strcmp(current->type, "NUMBER") == 0)
+                {
+                    printf("Parsing token: Type: %s, Value: %s\n", current->type, current->value);
+                    fprintf(output_file, "   mov rbx, %s\n", current->value);
+                }
+                else if (strcmp(current->type, "IDENTIFIER") == 0)
+                {
+                    printf("Parsing token: Type: %s, Value: %s\n", current->type, current->value);
+                    if (isDeclared(current->value, &identifierListe) == 1)
+                    {
+                        int position = stackPos(current->value, &identifierListe);
+                        fprintf(output_file, "   mov rbx, [rbp - %d]\n", position * 8);
+                    }
+                    else
+                    {
+                        fprintf(stderr, "Error: Undeclared identifier %s\n", current->value);
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                else if (strcmp(current->value, "(") == 0)
+                {
+                    current = current->next;
+                    parser(current->next, identifierListe, output_file, boucleCount);
+                }
                 fprintf(output_file, "   imul rax, rbx\n");
+                if (strcmp(current->next->type, "SYMBOL") == 0)
+                {
+                    current = current->next;
+                    parser(current, identifierListe, output_file, boucleCount);
+                }
             }
             else if (strcmp(current->value, "/") == 0)
             {
-                fprintf(output_file, "   push rax\n");
                 current = current->next;
-                parser(current, identifierListe, output_file, boucleCount);
-                fprintf(output_file, "   pop rbx\n");
-                fprintf(output_file, "   xchg rax, rbx\n");
+                if (strcmp(current->type, "NUMBER") == 0)
+                {
+                    printf("Parsing token: Type: %s, Value: %s\n", current->type, current->value);
+                    fprintf(output_file, "   mov rbx, %s\n", current->value);
+                }
+                else if (strcmp(current->type, "IDENTIFIER") == 0)
+                {
+                    printf("Parsing token: Type: %s, Value: %s\n", current->type, current->value);
+                    if (isDeclared(current->value, &identifierListe) == 1)
+                    {
+                        int position = stackPos(current->value, &identifierListe);
+                        fprintf(output_file, "   mov rbx, [rbp - %d]\n", position * 8);
+                    }
+                    else
+                    {
+                        fprintf(stderr, "Error: Undeclared identifier %s\n", current->value);
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                else if (strcmp(current->value, "(") == 0)
+                {
+                    current = current->next;
+                    parser(current->next, identifierListe, output_file, boucleCount);
+                }
                 fprintf(output_file, "   cdq\n");
                 fprintf(output_file, "   idiv ebx\n");
+                if (strcmp(current->next->type, "SYMBOL") == 0)
+                {
+                    current = current->next;
+                    parser(current, identifierListe, output_file, boucleCount);
+                }
             }
             else if (strcmp(current->value, "%") == 0)
             {

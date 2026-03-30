@@ -36,10 +36,21 @@ result = 0
 ```
 
 - L'identifiant doit commencer par une lettre.
-- La valeur doit être un entier littéral (0–254).
+- La valeur doit être un entier littéral (0–254) ou une expression arithmétique.
 - Chaque instruction doit être sur sa propre ligne.
+- Expressions supportées : `+`, `-`, `*`, `/`, `%`, `**`, `++`, `--`, parenthèses.
 
 ---
+
+### Expressions
+
+```
+x = 5
+x = x + 10
+x = x * 2
+return x
+```
+
 
 ### Retourner une valeur
 
@@ -82,7 +93,8 @@ echo $?   # → 42
 
 ## Limitations actuelles (v0.1.0)
 
-- Pas d'opérations arithmétiques.
+- Opérations arithmétiques de base prises en charge (`+`, `-`, `*`, `/`, `%`, `**`).
+- Opérateurs unaires `++`, `--` sur expressions.
 - Pas de conditions (`if`, `else`).
 - Pas de boucles.
 - Pas de fonctions.
