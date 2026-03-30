@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(aqua 
 ./src/main.c 
 ./src/generator.c
+./src/parser.c
 ./src/structs.c
 ./src/tokenizer.c
 )

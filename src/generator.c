@@ -3,6 +3,7 @@
 #include <string.h>
 #include "headers/tokenizer.h"
 #include "headers/structs.h"
+#include "headers/parser.h"
 
 int isDeclared(char *name, struct identifierListe *liste)
 {
@@ -68,9 +69,11 @@ void ajouterIdentifier(struct identifierListe *liste, char name[1024], int stack
     }
 }
 
-void freeIdentifierList(struct identifierListe *liste) {
+void freeIdentifierList(struct identifierListe *liste)
+{
     struct identifier *current = liste->head;
-    while (current != NULL) {
+    while (current != NULL)
+    {
         struct identifier *next = current->next;
         free(current);
         current = next;
@@ -103,43 +106,48 @@ void generator(FILE *input_file, struct TokenListe tokenList)
             if (strcmp(current->value, "return") == 0)
             {
                 current = current->next;
-                if (current != NULL && strcmp(current->type, "NUMBER") == 0 && atoi(current->value) < 255)
-                {
-                    if (isEndOfLine(current) == 1)
-                    {
-                        fprintf(output_file, "   mov rax, 60\n");
-                        fprintf(output_file, "   mov rdi, %s\n", current->value);
-                        fprintf(output_file, "   syscall\n");
-                    }
-                    else
-                    {
-                        fprintf(stderr, "Error: Unexpected token after return value\n");
-                        fclose(input_file);
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                else if (current != NULL && strcmp(current->type, "IDENTIFIER") == 0 && isDeclared(current->value, &identifierListe) == 1)
-                {
-                    position = stackPos(current->value, &identifierListe);
-                    if (isEndOfLine(current))
-                    {
-                        fprintf(output_file, "   mov rax, 60\n");
-                        fprintf(output_file, "   mov rdi, [rbp - %d]\n", position * 8);
-                        fprintf(output_file, "   syscall\n");
-                    }
-                    else
-                    {
-                        fprintf(stderr, "Error: Unexpected token after return value\n");
-                        fclose(input_file);
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                else
-                {
-                    fprintf(stderr, "Error: Expected an expression after return\n");
-                    fclose(input_file);
-                    exit(EXIT_FAILURE);
-                }
+                //     if (current != NULL && strcmp(current->type, "NUMBER") == 0 && atoi(current->value) < 255)
+                //     {
+                //         if (isEndOfLine(current) == 1)
+                //         {
+                //             fprintf(output_file, "   mov rax, 60\n");
+                //             fprintf(output_file, "   mov rdi, %s\n", current->value);
+                //             fprintf(output_file, "   syscall\n");
+                //         }
+                //         else
+                //         {
+                //             fprintf(stderr, "Error: Unexpected token after return value\n");
+                //             fclose(input_file);
+                //             exit(EXIT_FAILURE);
+                //         }
+                //     }
+                //     else if (current != NULL && strcmp(current->type, "IDENTIFIER") == 0 && isDeclared(current->value, &identifierListe) == 1)
+                //     {
+                //         position = stackPos(current->value, &identifierListe);
+                //         if (isEndOfLine(current))
+                //         {
+                //             fprintf(output_file, "   mov rax, 60\n");
+                //             fprintf(output_file, "   mov rdi, [rbp - %d]\n", position * 8);
+                //             fprintf(output_file, "   syscall\n");
+                //         }
+                //         else
+                //         {
+                //             fprintf(stderr, "Error: Unexpected token after return value\n");
+                //             fclose(input_file);
+                //             exit(EXIT_FAILURE);
+                //         }
+                //     }
+                //     else
+                //     {
+                //         fprintf(stderr, "Error: Expected an expression after return\n");
+                //         fclose(input_file);
+                //         exit(EXIT_FAILURE);
+                //     }
+                // }
+                parser(current, identifierListe, output_file);
+                fprintf(output_file, "   mov rdi, rax\n");
+                fprintf(output_file, "   mov rax, 60\n");
+                fprintf(output_file, "   syscall\n");
             }
         }
         else if (strcmp(current->type, "IDENTIFIER") == 0)
@@ -147,29 +155,19 @@ void generator(FILE *input_file, struct TokenListe tokenList)
             if (current->next && current->next->next)
             {
 
-                if (strcmp(current->next->value, "=") == 0 && strcmp(current->next->next->type, "NUMBER") == 0)
+                if (strcmp(current->next->value, "=") == 0)
                 {
-                    if (isEndOfLine(current->next->next) == 1)
+                    parser(current->next->next, identifierListe, output_file);
+                    if (isDeclared(current->value, &identifierListe) == 1)
                     {
-                        if (isDeclared(current->value, &identifierListe) == 1)
-                        {
-                            position = stackPos(current->value, &identifierListe);
-                            fprintf(output_file, "   mov rax, %s", current->next->next->value);
-                            fprintf(output_file, "   mov [rbp - %d]", position * 4);
-                        }
-                        else
-                        {
-                            fprintf(output_file, "   mov rax, %s\n", current->next->next->value);
-                            fprintf(output_file, "   push rax\n");
-                            ajouterIdentifier(&identifierListe, current->value, stackPosCount);
-                            stackPosCount++;
-                        }
+                        position = stackPos(current->value, &identifierListe);
+                        fprintf(output_file, "   mov [rbp - %d], rax\n", position * 4);
                     }
                     else
                     {
-                        fprintf(stderr, "Error: Unexpected token after identifier value\n");
-                        fclose(input_file);
-                        exit(EXIT_FAILURE);
+                        fprintf(output_file, "   push rax\n");
+                        ajouterIdentifier(&identifierListe, current->value, stackPosCount);
+                        stackPosCount++;
                     }
                 }
                 else

@@ -8,6 +8,7 @@ Après cela, se pencher sur les opérations nécéssitant priorité comme les mu
 #include "headers/tokenizer.h"
 #include "headers/structs.h"
 #include "headers/generator.h"
+#include "headers/parser.h"
 
 void afficherTokens(struct TokenListe *liste)
 {

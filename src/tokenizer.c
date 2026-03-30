@@ -101,7 +101,12 @@ struct TokenListe tokenizer(FILE *input_file)
         }
 
         if (c == EOF)
+        {
+            strcpy(tokenType, "EOL");
+            strcpy(tokenValue, "\0");
+            ajouterToken(&tokenList, tokenType, tokenValue);
             break;
+        }
 
         // Lire le token selon son type de départ
         if (isalpha(c))
@@ -186,5 +191,8 @@ struct TokenListe tokenizer(FILE *input_file)
             exit(EXIT_FAILURE);
         }
     } while (c != EOF);
+    strcpy(tokenType, "EOL");
+    strcpy(tokenValue, "\0");
+    ajouterToken(&tokenList, tokenType, tokenValue);
     return tokenList;
 }

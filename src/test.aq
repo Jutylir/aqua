@@ -1,2 +1,2 @@
-a = 69
-return a
+a = 5 + 5
+return a + 5
