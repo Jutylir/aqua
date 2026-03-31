@@ -4,226 +4,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*struct Token *parser(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
-{
-    printf("Parsing token: Type: %s, Value: %s\n", current->type, current->value);
-
-    if (strcmp(current->type, "SYMBOL") == 0 && strcmp(current->value, "(") == 0)
-    {
-        current = current->next;
-        current = parser(current, identifierListe, output_file, boucleCount);
-        if (current != NULL && strcmp(current->value, ")") == 0)
-        {
-            current = current->next;
-        }
-        return current;
-    }
-
-    if (strcmp(current->type, "NUMBER") == 0)
-    {
-        fprintf(output_file, "   mov rax, %s\n", current->value);
-        if (strcmp(current->next->type, "SYMBOL") == 0)
-        {
-            current = current->next;
-            parser(current, identifierListe, output_file, boucleCount);
-        }
-    }
-    else if (strcmp(current->type, "IDENTIFIER") == 0)
-    {
-        if (isDeclared(current->value, &identifierListe) == 1)
-        {
-            int position = stackPos(current->value, &identifierListe);
-            fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
-            if (strcmp(current->next->type, "SYMBOL") == 0)
-            {
-                current = current->next;
-                parser(current, identifierListe, output_file, boucleCount);
-            }
-        }
-        else
-        {
-            fprintf(stderr, "Error: Undeclared identifier %s\n", current->value);
-            exit(EXIT_FAILURE);
-        }
-    }
-    else if (strcmp(current->type, "SYMBOL") == 0)
-    {
-        if (strcmp(current->next->type, "EOF") == 0 || strcmp(current->next->type, "NEWLINE") == 0 || current->next == NULL)
-        {
-            if (strcmp(current->value, "++") == 0)
-            {
-                if (strcmp(current->next->type, "NEWLINE") == 0 || strcmp(current->next->type, "EOF") == 0)
-                {
-                    fprintf(output_file, "   inc rax\n");
-                }
-                else
-                {
-                    fprintf(stderr, "Error: Unexpected token after ++ operator\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
-            else if (strcmp(current->value, "--") == 0)
-            {
-                if (strcmp(current->next->type, "NEWLINE") == 0 || strcmp(current->next->type, "EOF") == 0)
-                {
-                    fprintf(output_file, "   dec rax\n");
-                }
-                else
-                {
-                    fprintf(stderr, "Error: Unexpected token after -- operator\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
-        }
-        else
-        {
-            if (strcmp(current->value, "+") == 0)
-            {
-                fprintf(output_file, "   push rax\n");
-                current = current->next;
-                parser(current, identifierListe, output_file, boucleCount);
-                fprintf(output_file, "   pop rbx\n");
-                fprintf(output_file, "   add rax, rbx\n");
-            }
-            else if (strcmp(current->value, "-") == 0)
-            {
-                fprintf(output_file, "   push rax\n");
-                current = current->next;
-                parser(current, identifierListe, output_file, boucleCount);
-                fprintf(output_file, "   pop rbx\n");
-                fprintf(output_file, "   sub rbx, rax\n");
-                fprintf(output_file, "   mov rax, rbx\n");
-            }
-            else if (strcmp(current->value, "*") == 0)
-            {
-                current = current->next;
-                fprintf(output_file, "   push rax\n");
-                if (strcmp(current->type, "NUMBER") == 0)
-                {
-                    printf("Parsing token: Type: %s, Value: %s\n", current->type, current->value);
-                    fprintf(output_file, "   mov rax, %s\n", current->value);
-                }
-                else if (strcmp(current->type, "IDENTIFIER") == 0)
-                {
-                    printf("Parsing token: Type: %s, Value: %s\n", current->type, current->value);
-                    if (isDeclared(current->value, &identifierListe) == 1)
-                    {
-                        int position = stackPos(current->value, &identifierListe);
-                        fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
-                    }
-                    else
-                    {
-                        fprintf(stderr, "Error: Undeclared identifier %s\n", current->value);
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                else if (strcmp(current->value, "(") == 0)
-                {
-                    current = current->next;
-                    current = parser(current->next, identifierListe, output_file, boucleCount);
-                }
-                fprintf(output_file, "   pop rbx\n");
-                fprintf(output_file, "   imul rax, rbx\n");
-                if (strcmp(current->next->type, "SYMBOL") == 0)
-                {
-                    current = current->next;
-                    current = parser(current, identifierListe, output_file, boucleCount);
-                }
-            }
-            else if (strcmp(current->value, "/") == 0)
-            {
-                current = current->next;
-                fprintf(output_file, "   push rax\n");
-                if (strcmp(current->type, "NUMBER") == 0)
-                {
-                    printf("Parsing token: Type: %s, Value: %s\n", current->type, current->value);
-                    fprintf(output_file, "   mov rax, %s\n", current->value);
-                }
-                else if (strcmp(current->type, "IDENTIFIER") == 0)
-                {
-                    printf("Parsing token: Type: %s, Value: %s\n", current->type, current->value);
-                    if (isDeclared(current->value, &identifierListe) == 1)
-                    {
-                        int position = stackPos(current->value, &identifierListe);
-                        fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
-                    }
-                    else
-                    {
-                        fprintf(stderr, "Error: Undeclared identifier %s\n", current->value);
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                else if (strcmp(current->value, "(") == 0)
-                {
-                    current = parser(current, identifierListe, output_file, boucleCount);
-                }
-                fprintf(output_file, "   pop rbx\n");
-                fprintf(output_file, "   xchg rax, rbx\n");
-                fprintf(output_file, "   cdq\n");
-                fprintf(output_file, "   idiv ebx\n");
-                if (strcmp(current->next->type, "SYMBOL") == 0)
-                {
-                    current = current->next;
-                    current = parser(current, identifierListe, output_file, boucleCount);
-                }
-            }
-            else if (strcmp(current->value, "%") == 0)
-            {
-                fprintf(output_file, "   push rax\n");
-                current = current->next;
-                parser(current, identifierListe, output_file, boucleCount);
-                fprintf(output_file, "   pop rbx\n");
-                fprintf(output_file, "   xchg rax, rbx\n");
-                fprintf(output_file, "   cdq\n");
-                fprintf(output_file, "   idiv ebx\n");
-                fprintf(output_file, "   mov rax, rdx\n");
-            }
-            else if (strcmp(current->value, "**") == 0)
-            {
-                fprintf(output_file, "   push rax\n");
-                current = current->next;
-                current = parser(current, identifierListe, output_file, boucleCount);
-                fprintf(output_file, "   pop rbx\n");
-                fprintf(output_file, "   mov rcx, rax\n");
-                fprintf(output_file, "   mov rax, 1\n");
-                fprintf(output_file, "power_loop_%d:\n", *boucleCount);
-                fprintf(output_file, "   test rcx, rcx\n");
-                fprintf(output_file, "   jz power_done_%d\n", *boucleCount);
-                fprintf(output_file, "   imul rax, rbx\n");
-                fprintf(output_file, "   dec rcx\n");
-                fprintf(output_file, "   jmp power_loop_%d\n", *boucleCount);
-                fprintf(output_file, "power_done_%d:\n", *boucleCount);
-                (*boucleCount)++;
-            }
-            else if (strcmp(current->value, ")") == 0)
-            {
-                current = current->next;
-            }
-            else if (strcmp(current->value, "(") == 0 && strcmp(current->next->type, "SYMBOL") == 0 || strcmp(current->next->type, "NUMBER") == 0 || strcmp(current->next->type, "IDENTIFIER") == 0)
-            {
-                current = current->next;
-                current = parser(current, identifierListe, output_file, boucleCount);
-            }
-            else
-            {
-                fprintf(stderr, "Error: Unsupported operator %s\n", current->value);
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
-    else
-    {
-        fprintf(stderr, "Error: Unexpected token type %s\n", current->type);
-        exit(EXIT_FAILURE);
-    }
-    return current;
-}
-*/
-
 struct Token *parsePrimary(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
 struct Token *parseTerm(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
 struct Token *parseExpression(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
 struct Token *parser(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
+struct Token *parseComparison(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
+
+/*
+Ordre de priorité des opérations :
+1. Parenthèses -> parsePrimary
+2. Opérateurs prioritaires -> parseTerm
+3. Opérateurs d'addition et de soustraction -> parseExpression
+4. Nombres et identifiants -> parsePrimary
+5. Opérateurs de comparaison -> parseComparison
+
+parser appelle toujours l'ordre de priorité le plus bas, qui lui-même appelle les ordre de priorité plus élevé
+
+Par la suite, les opérateurs and et or seront ajoutés, avec une priorité plus basse que les comparaisons
+*/
 
 struct Token *parsePrimary(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
 {
@@ -313,6 +111,39 @@ struct Token *parseTerm(struct Token *current, struct identifierListe identifier
     return current;
 }
 
+struct Token *parseComparison(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
+{
+    current = parseExpression(current, identifierListe, output_file, boucleCount);
+
+    while (current != NULL && strcmp(current->type, "SYMBOL") == 0 && (strcmp(current->value, "==") == 0 || strcmp(current->value, "!=") == 0 || strcmp(current->value, "<") == 0 || strcmp(current->value, "<=") == 0 || strcmp(current->value, ">") == 0 || strcmp(current->value, ">=") == 0))
+    {
+        char op[8];
+        strcpy(op, current->value);
+        current = current->next;
+
+        fprintf(output_file, "   push rax\n");
+        current = parseExpression(current, identifierListe, output_file, boucleCount);
+        fprintf(output_file, "   pop rbx\n");
+        fprintf(output_file, "   cmp rbx, rax\n"); // ← rbx = gauche, rax = droite
+
+        if (strcmp(op, "==") == 0)
+            fprintf(output_file, "   sete al\n");
+        else if (strcmp(op, "!=") == 0)
+            fprintf(output_file, "   setne al\n");
+        else if (strcmp(op, "<") == 0)
+            fprintf(output_file, "   setl al\n");
+        else if (strcmp(op, "<=") == 0)
+            fprintf(output_file, "   setle al\n");
+        else if (strcmp(op, ">") == 0)
+            fprintf(output_file, "   setg al\n");
+        else if (strcmp(op, ">=") == 0)
+            fprintf(output_file, "   setge al\n");
+
+        fprintf(output_file, "   movzx rax, al\n");
+    }
+    return current;
+}
+
 struct Token *parseExpression(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
 {
     current = parseTerm(current, identifierListe, output_file, boucleCount);
@@ -344,5 +175,5 @@ struct Token *parseExpression(struct Token *current, struct identifierListe iden
 
 struct Token *parser(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
 {
-    return parseExpression(current, identifierListe, output_file, boucleCount);
+    return parseComparison(current, identifierListe, output_file, boucleCount);
 }
