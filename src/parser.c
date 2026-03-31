@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct Token *parsePrimary(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
-struct Token *parseTerm(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
-struct Token *parseExpression(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
-struct Token *parser(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
-struct Token *parseComparison(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount);
+struct Token *parsePrimary(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount);
+struct Token *parseTerm(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount);
+struct Token *parseExpression(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount);
+struct Token *parser(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount);
+struct Token *parseComparison(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount);
 
 /*
 Ordre de priorité des opérations :
@@ -23,18 +23,18 @@ parser appelle toujours l'ordre de priorité le plus bas, qui lui-même appelle 
 Par la suite, les opérateurs and et or seront ajoutés, avec une priorité plus basse que les comparaisons
 */
 
-struct Token *parsePrimary(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
+struct Token *parsePrimary(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount)
 {
     if (strcmp(current->type, "NUMBER") == 0)
     {
         fprintf(output_file, "   mov rax, %s\n", current->value);
-        return current->next;
+        return current;
     }
     else if (strcmp(current->type, "IDENTIFIER") == 0)
     {
-        if (isDeclared(current->value, &identifierListe))
+        if (isDeclared(current->value, identifierListe))
         {
-            int position = stackPos(current->value, &identifierListe);
+            int position = stackPos(current->value, identifierListe);
             fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
 
             // Vérifier si c'est ++ ou -- après la variable
@@ -77,7 +77,7 @@ struct Token *parsePrimary(struct Token *current, struct identifierListe identif
     exit(EXIT_FAILURE);
 }
 
-struct Token *parseTerm(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
+struct Token *parseTerm(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount)
 {
     current = parsePrimary(current, identifierListe, output_file, boucleCount);
 
@@ -129,7 +129,7 @@ struct Token *parseTerm(struct Token *current, struct identifierListe identifier
     return current;
 }
 
-struct Token *parseComparison(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
+struct Token *parseComparison(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount)
 {
     current = parseExpression(current, identifierListe, output_file, boucleCount);
 
@@ -162,7 +162,7 @@ struct Token *parseComparison(struct Token *current, struct identifierListe iden
     return current;
 }
 
-struct Token *parseExpression(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
+struct Token *parseExpression(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount)
 {
     current = parseTerm(current, identifierListe, output_file, boucleCount);
 
@@ -191,7 +191,7 @@ struct Token *parseExpression(struct Token *current, struct identifierListe iden
     return current;
 }
 
-struct Token *parser(struct Token *current, struct identifierListe identifierListe, FILE *output_file, int *boucleCount)
+struct Token *parser(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, int *boucleCount)
 {
     return parseComparison(current, identifierListe, output_file, boucleCount);
 }

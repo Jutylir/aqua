@@ -1,6 +1,6 @@
 /*TODO:
-Ecrire un fichier "parser" d'expression pour pouvoire gérer addition, soustraction et égalité.
-Après cela, se pencher sur les opérations nécéssitant priorité comme les multiplications, divisions et gestion des parenthèses */
+Créer le traitement des scopes. 
+En outre, toute variable déclarée dans un scope doit être détruite et supprimée de la stack à la fin du scope */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
