@@ -1,6 +1,6 @@
 /*TODO:
-Vérifier si il serait préférable de free() tous nos pointeurs.
- */
+Ecrire un fichier "parser" d'expression pour pouvoire gérer addition, soustraction et égalité.
+Après cela, se pencher sur les opérations nécéssitant priorité comme les multiplications, divisions et gestion des parenthèses */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +8,7 @@ Vérifier si il serait préférable de free() tous nos pointeurs.
 #include "headers/tokenizer.h"
 #include "headers/structs.h"
 #include "headers/generator.h"
+#include "headers/parser.h"
 
 void afficherTokens(struct TokenListe *liste)
 {
