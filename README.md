@@ -2,6 +2,7 @@
 
 > **Version** : 0.2.0 — Work in progress
 
+
 ---
 
 ## Introduction
@@ -57,7 +58,6 @@ y = x == 1         ; valeur 1 ou 0
 return x
 ```
 
-
 ### Retourner une valeur
 
 ```
@@ -98,6 +98,7 @@ echo $?   # → 42
 ---
 
 ## Limitations actuelles (v0.1.0)
+
 
 - Pas de conditions (`if`, `else`) au niveau du flux de contrôle.
 - Pas de fonctions multi-lignes (une seule entrée/exécution).
