@@ -36,6 +36,24 @@ struct Token *parsePrimary(struct Token *current, struct identifierListe identif
         {
             int position = stackPos(current->value, &identifierListe);
             fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
+
+            // Vérifier si c'est ++ ou -- après la variable
+            if (current != NULL && strcmp(current->type, "SYMBOL") == 0)
+            {
+                if (strcmp(current->value, "++") == 0)
+                {
+                    fprintf(output_file, "   inc rax\n");
+                    fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
+                    current = current->next;
+                }
+                else if (strcmp(current->value, "--") == 0)
+                {
+                    fprintf(output_file, "   dec rax\n");
+                    fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
+                    current = current->next;
+                }
+            }
+
             return current->next;
         }
         else
