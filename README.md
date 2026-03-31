@@ -1,6 +1,6 @@
 # Aqua Language Documentation
 
-> **Version** : 0.1.0 — Work in progress
+> **Version** : 0.2.0 — Work in progress
 
 ---
 
@@ -35,10 +35,12 @@ age = 25
 result = 0
 ```
 
-- L'identifiant doit commencer par une lettre.
-- La valeur doit être un entier littéral (0–254) ou une expression arithmétique.
+- L'identifiant doit commencer par une lettre et peut contenir des lettres et des chiffres.
+- La valeur peut être un entier littéral (0–254), un identifiant existant ou une expression.
 - Chaque instruction doit être sur sa propre ligne.
-- Expressions supportées : `+`, `-`, `*`, `/`, `%`, `**`, `++`, `--`, parenthèses.
+- Opérateurs arithmétiques supportés : `+`, `-`, `*`, `/`, `%`, `**`, parenthèses.
+- Opérateurs de comparaison supportés : `==`, `!=`, `<`, `<=`, `>`, `>=` (résultat 0/1).
+- Opérateurs unaires supportés en suffixe : `++` et `--`.
 
 ---
 
@@ -48,6 +50,10 @@ result = 0
 x = 5
 x = x + 10
 x = x * 2
+x = x - 3
+x = (x + 1) * 2
+x = 8 > 7          ; valeur 1
+y = x == 1         ; valeur 1 ou 0
 return x
 ```
 
@@ -93,12 +99,9 @@ echo $?   # → 42
 
 ## Limitations actuelles (v0.1.0)
 
-- Opérations arithmétiques de base prises en charge (`+`, `-`, `*`, `/`, `%`, `**`).
-- Opérateurs unaires `++`, `--` sur expressions.
-- Pas de conditions (`if`, `else`).
-- Pas de boucles.
-- Pas de fonctions.
-- Les valeurs sont limitées à des entiers entre 0 et 254.
+- Pas de conditions (`if`, `else`) au niveau du flux de contrôle.
+- Pas de fonctions multi-lignes (une seule entrée/exécution).
+- Les valeurs attendues pour `return` restent 0–254 pour correspondre à `echo $?`.
 - Un seul fichier source par compilation.
 
 ---
@@ -120,9 +123,8 @@ global _start
 _start:
     push rbp
     mov rbp, rsp
-    sub rsp, 8
     mov rax, 5
-    mov [rbp - 8], rax   ; x = 5
+    push rax              ; x = 5 (stack variable)
     mov rax, 60
     mov rdi, [rbp - 8]   ; return x
     syscall
