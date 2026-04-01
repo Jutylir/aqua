@@ -77,8 +77,8 @@ struct TokenListe tokenizer(FILE *input_file)
         exit(EXIT_FAILURE);
     }
 
-    char *statements[] = {"return", "if", "else", NULL};
-    char *symbols[] = {"=", "+", "-", "/", "\\", "'", "''", "\"", "\"\"", "&", "{", "}", "{}", "(", ")", "*", "()", "**", "%", ".", "!", ">", ">=", "<", "<=", "++", "--", "+=", "-=", "[", "]", "[]", "==", "!=", NULL};
+    char *statements[] = {"return", "if", "else", "for", "while", NULL};
+    char *symbols[] = {"=", "+", "-", "/", "\\", "'", "''", "\"", "\"\"", "&", "{", "}", "{}", "(", ")", "*", "()", "**", "%", ".", "!", ">", ">=", "<", "<=", "++", "--", "+=", "-=", "[", "]", "[]", "==", "!=", ";", NULL};
 
     char tokenType[1024];
     char tokenValue[1024] = {0};
@@ -179,14 +179,14 @@ struct TokenListe tokenizer(FILE *input_file)
             }
             else
             {
-                fprintf(stderr, "Error: Unknown token\n");
+                fprintf(stderr, "Error: Unknown token %s\n", stringify(buffer));
                 fclose(input_file);
                 exit(EXIT_FAILURE);
             }
         }
         else
         {
-            fprintf(stderr, "Error: Unknown token\n");
+            fprintf(stderr, "Error: Unknown token %s\n", stringify(buffer));
             fclose(input_file);
             exit(EXIT_FAILURE);
         }

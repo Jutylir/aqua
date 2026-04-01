@@ -1,6 +1,8 @@
-a = 40
-if a == (5 + 3) * 5 {
-    return 67
-}else{
-    return 69
+a = 5
+while a < 10 {
+    a++
 }
+for (i=0; i<5 *3 +6; i++ ) {
+    a++
+}
+return a

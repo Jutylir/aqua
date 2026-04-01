@@ -132,6 +132,119 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
             }
             fprintf(output_file, ".endif%d:\n", currentBoucleCount);
         }
+        if (strcmp(current->value, "while") == 0)
+        {
+            int currentBoucleCount = *boucleCount;
+            (*boucleCount)++;
+            fprintf(output_file, ".while%d:\n", currentBoucleCount);
+            current = current->next;
+            current = parser(current, identifierListe, output_file, boucleCount);
+            fprintf(output_file, "   cmp rax, 1\n");
+            fprintf(output_file, "   jne .endwhile%d\n", currentBoucleCount);
+            if (current != NULL && strcmp(current->value, ")") == 0)
+            {
+                current = current->next;
+            }
+            if (current != NULL && strcmp(current->type, "NEWLINE") == 0)
+            {
+                current = current->next;
+            }
+            if (current != NULL && strcmp(current->type, "SYMBOL") == 0 && strcmp(current->value, "{") == 0)
+            {
+                current = tokenTreater(current, identifierListe, output_file, input_file, boucleCount, stackPosCount);
+            }
+            else
+            {
+                fprintf(stderr, "Error: Expected '{' after while statement\n");
+                fclose(input_file);
+                exit(EXIT_FAILURE);
+            }
+            fprintf(output_file, "   jmp .while%d\n", currentBoucleCount);
+            fprintf(output_file, ".endwhile%d:\n", currentBoucleCount);
+        }
+        if (strcmp(current->value, "for") == 0)
+        {
+            int currentBoucleCount = *boucleCount;
+            (*boucleCount)++;
+            current = current->next; // sauter "for"
+            if (current != NULL && strcmp(current->value, "(") == 0)
+            {
+                current = current->next; // sauter "("
+                if (current != NULL && strcmp(current->type, "IDENTIFIER") == 0)
+                {
+                    int forVarPos = *stackPosCount;
+                    if (current != NULL && strcmp(current->next->value, "=") == 0)
+                    {
+                        ajouterIdentifier(identifierListe, current->value, stackPosCount);
+                        (*stackPosCount)++;
+                        current = current->next->next; // sauter "IDENTIFIER" et "="
+                        current = parser(current, identifierListe, output_file, boucleCount);
+                        fprintf(output_file, "   push rax\n");
+                        if (current != NULL && strcmp(current->value, ";") == 0)
+                        {
+                            fprintf(output_file, ".for%d:\n", currentBoucleCount);
+                            current = parser(current->next, identifierListe, output_file, boucleCount);
+                            fprintf(output_file, "   cmp rax, 1\n");
+                            fprintf(output_file, "   jne .endfor%d\n", currentBoucleCount);
+                            if (current != NULL && strcmp(current->value, ";") == 0)
+                            {
+                                current = parser(current->next, identifierListe, output_file, boucleCount);
+                                if (current != NULL && strcmp(current->value, ")") == 0)
+                                {
+                                    current = current->next; // sauter ")"
+                                }
+                                if (current != NULL && strcmp(current->type, "NEWLINE") == 0)
+                                {
+                                    current = current->next;
+                                }
+                                if (current != NULL && strcmp(current->type, "SYMBOL") == 0 && strcmp(current->value, "{") == 0)
+                                {
+                                    current = tokenTreater(current, identifierListe, output_file, input_file, boucleCount, stackPosCount);
+                                    fprintf(output_file, "   jmp .for%d\n", currentBoucleCount);
+                                    fprintf(output_file, ".endfor%d:\n", currentBoucleCount);
+                                }
+                                else
+                                {
+                                    fprintf(stderr, "Error: Expected '{' after for statement\n");
+                                    fclose(input_file);
+                                    exit(EXIT_FAILURE);
+                                }
+                            }
+                            else
+                            {
+                                fprintf(stderr, "Error: Expected ';' in for statement\n");
+                                fclose(input_file);
+                                exit(EXIT_FAILURE);
+                            }
+                        }
+                        else
+                        {
+                            fprintf(stderr, "Error: Expected ';' in for statement\n");
+                            fclose(input_file);
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                    else
+                    {
+                        fprintf(stderr, "Error: Expected '=' in for statement\n");
+                        fclose(input_file);
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                else
+                {
+                    fprintf(stderr, "Error: Expected identifier in for statement\n");
+                    fclose(input_file);
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else
+            {
+                fprintf(stderr, "Error: Expected '(' after for statement\n");
+                fclose(input_file);
+                exit(EXIT_FAILURE);
+            }
+        }
     }
     else if (strcmp(current->type, "IDENTIFIER") == 0)
     {
@@ -197,6 +310,7 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
             }
         }
     }
+
     if (current == NULL)
     {
         return NULL;
