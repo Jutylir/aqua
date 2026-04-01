@@ -1,6 +1,6 @@
 /*TODO:
-Créer le traitement des scopes. 
-En outre, toute variable déclarée dans un scope doit être détruite et supprimée de la stack à la fin du scope */
+Créer une structure conditionnelle 
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

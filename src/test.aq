@@ -1,2 +1,6 @@
-a = 69
-return a
+a = 40
+if a == (5 + 3) * 5 {
+    return 67
+}else{
+    return 69
+}
