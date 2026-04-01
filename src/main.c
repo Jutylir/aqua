@@ -53,7 +53,6 @@ int main(int argc, char *argv[])
     // Display the tokens
     afficherTokens(&tokenList);
 
-    //fclose(output_file);
     generator(input_file, tokenList);
 
     freeTokenList(&tokenList);

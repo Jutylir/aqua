@@ -134,11 +134,29 @@ struct TokenListe tokenizer(FILE *input_file)
         }
         else if (ispunct(c))
         {
-            // SYMBOL : consomme les symboles consécutifs (pour ==, !=, ->)
-            while (ispunct(c) && !isspace(c) && c != EOF)
+            // SYMBOL : lecture intelligente pour ==, !=, <=, >=, ++, --, +=, -=
+            int first = c;
+            int second = fgetc(input_file);
+
+            if (second != EOF)
             {
-                buffer[i++] = c;
-                c = fgetc(input_file);
+                char twoChars[3] = {(char)first, (char)second, '\0'};
+                if (isSymbol(twoChars, symbols))
+                {
+                    buffer[i++] = first;
+                    buffer[i++] = second;
+                    c = fgetc(input_file);
+                }
+                else
+                {
+                    buffer[i++] = first;
+                    c = second;
+                }
+            }
+            else
+            {
+                buffer[i++] = first;
+                c = second;
             }
         }
 
@@ -146,7 +164,9 @@ struct TokenListe tokenizer(FILE *input_file)
         i = 0;
 
         if (buffer[0] == '\0')
+        {
             continue;
+        }
 
         if (isalpha(buffer[0]))
         {
