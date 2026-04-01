@@ -94,6 +94,44 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
             fprintf(output_file, "   mov rax, 60\n");
             fprintf(output_file, "   syscall\n");
         }
+        if (strcmp(current->value, "if") == 0)
+        {
+            int currentBoucleCount = *boucleCount;
+            (*boucleCount)++;
+            current = current->next;
+            current = parser(current, identifierListe, output_file, boucleCount);
+            fprintf(output_file, "   cmp rax, 1\n");
+            fprintf(output_file, "   jne .else%d\n", currentBoucleCount);
+            if (current != NULL && strcmp(current->value, ")") == 0)
+            {
+                current = current->next;
+            }
+            if (current != NULL && strcmp(current->type, "NEWLINE") == 0)
+            {
+                current = current->next;
+            }
+            if (current != NULL && strcmp(current->type, "SYMBOL") == 0 && strcmp(current->value, "{") == 0)
+            {
+                current = tokenTreater(current, identifierListe, output_file, input_file, boucleCount, stackPosCount);
+            }
+            else
+            {
+                fprintf(stderr, "Error: Expected '{' after if statement\n");
+                fclose(input_file);
+                exit(EXIT_FAILURE);
+            }
+            fprintf(output_file, "   jmp .endif%d\n", currentBoucleCount);
+            fprintf(output_file, ".else%d:\n", currentBoucleCount);
+            if (current != NULL && strcmp(current->type, "STATEMENT") == 0 && strcmp(current->value, "else") == 0)
+            {
+                current = current->next;
+                if (current != NULL && strcmp(current->type, "SYMBOL") == 0 && strcmp(current->value, "{") == 0)
+                {
+                    current = tokenTreater(current, identifierListe, output_file, input_file, boucleCount, stackPosCount);
+                }
+            }
+            fprintf(output_file, ".endif%d:\n", currentBoucleCount);
+        }
     }
     else if (strcmp(current->type, "IDENTIFIER") == 0)
     {
@@ -117,9 +155,7 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
             }
             else
             {
-                fprintf(stderr, "Error: Unexpected token or end of line\n");
-                fclose(input_file);
-                exit(EXIT_FAILURE);
+                current = parser(current, identifierListe, output_file, boucleCount);
             }
         }
     }

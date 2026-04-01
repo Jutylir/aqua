@@ -28,32 +28,38 @@ struct Token *parsePrimary(struct Token *current, struct identifierListe *identi
     if (strcmp(current->type, "NUMBER") == 0)
     {
         fprintf(output_file, "   mov rax, %s\n", current->value);
-        return current;
+        return current->next;
     }
     else if (strcmp(current->type, "IDENTIFIER") == 0)
     {
         if (isDeclared(current->value, identifierListe))
         {
             int position = stackPos(current->value, identifierListe);
-            fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
 
-            // Vérifier si c'est ++ ou -- après la variable
-            if (current != NULL && strcmp(current->type, "SYMBOL") == 0)
+            if (current->next != NULL && strcmp(current->next->type, "SYMBOL") == 0)
             {
-                if (strcmp(current->value, "++") == 0)
+                if (strcmp(current->next->value, "++") == 0)
                 {
-                    fprintf(output_file, "   inc rax\n");
-                    fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
-                    current = current->next;
+                    // Postfixe : retourner l'ancienne valeur, incrémenter en mémoire
+                    fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8); // valeur originale dans rax
+                    fprintf(output_file, "   mov rbx, rax\n");                      // sauvegarder
+                    fprintf(output_file, "   inc rbx\n");                           // incrémenter
+                    fprintf(output_file, "   mov [rbp - %d], rbx\n", position * 8); // sauvegarder en mémoire
+                    // rax contient toujours l'ancienne valeur
+                    return current->next->next;
                 }
-                else if (strcmp(current->value, "--") == 0)
+                else if (strcmp(current->next->value, "--") == 0)
                 {
-                    fprintf(output_file, "   dec rax\n");
-                    fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
-                    current = current->next;
+                    fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
+                    fprintf(output_file, "   mov rbx, rax\n");
+                    fprintf(output_file, "   dec rbx\n");
+                    fprintf(output_file, "   mov [rbp - %d], rbx\n", position * 8);
+                    return current->next->next;
                 }
             }
 
+            // Pas de ++ ou -- : simple lecture
+            fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
             return current->next;
         }
         else
@@ -116,13 +122,13 @@ struct Token *parseTerm(struct Token *current, struct identifierListe *identifie
             fprintf(output_file, "   pop rbx\n");
             fprintf(output_file, "   mov rcx, rax\n");
             fprintf(output_file, "   mov rax, 1\n");
-            fprintf(output_file, "power_loop_%d:\n", *boucleCount);
+            fprintf(output_file, ".power_loop_%d:\n", *boucleCount);
             fprintf(output_file, "   test rcx, rcx\n");
-            fprintf(output_file, "   jz power_done_%d\n", *boucleCount);
+            fprintf(output_file, "   jz .power_done_%d\n", *boucleCount);
             fprintf(output_file, "   imul rax, rbx\n");
             fprintf(output_file, "   dec rcx\n");
-            fprintf(output_file, "   jmp power_loop_%d\n", *boucleCount);
-            fprintf(output_file, "power_done_%d:\n", *boucleCount);
+            fprintf(output_file, "   jmp .power_loop_%d\n", *boucleCount);
+            fprintf(output_file, ".power_done_%d:\n", *boucleCount);
             (*boucleCount)++;
         }
     }
