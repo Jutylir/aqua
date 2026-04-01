@@ -1,5 +1,5 @@
 /*TODO:
-Créer une structure conditionnelle 
+Créer des boucles for et while
 */
 #include <stdio.h>
 #include <stdlib.h>
