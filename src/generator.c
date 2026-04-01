@@ -83,7 +83,6 @@ void freeIdentifierList(struct identifierListe *liste)
 
 struct Token *tokenTreater(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, FILE *input_file, int *boucleCount, int *stackPosCount)
 {
-    printf("tokenTreater: Type: %s, Value: %s\n", current->type, current->value);
     int position;
     if (strcmp(current->type, "STATEMENT") == 0)
     {
@@ -91,7 +90,6 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
         {
             current = current->next;
             current = parser(current, identifierListe, output_file, boucleCount);
-            printf("fin de parsing\n");
             fprintf(output_file, "   mov rdi, rax\n");
             fprintf(output_file, "   mov rax, 60\n");
             fprintf(output_file, "   syscall\n");
@@ -107,14 +105,12 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
                 {
                     position = stackPos(current->value, identifierListe);
                     current = parser(current->next->next, identifierListe, output_file, boucleCount);
-                    printf("fin de parsing\n");
                     fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
                 }
                 else
                 {
                     ajouterIdentifier(identifierListe, current->value, stackPosCount);
                     current = parser(current->next->next, identifierListe, output_file, boucleCount);
-                    printf("fin de parsing\n");
                     fprintf(output_file, "   push rax\n");
                     (*stackPosCount)++;
                 }
