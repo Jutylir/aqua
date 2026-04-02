@@ -1,6 +1,3 @@
-/*TODO:
-Améliorer la tokenization des symboles pour eviter de devoir mettre un espace entre 2 token de symbole différent ( ex: ) } -> )} )
-*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

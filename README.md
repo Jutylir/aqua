@@ -1,134 +1,139 @@
 # Aqua Language Documentation
 
-> **Version** : 0.2.0 — Work in progress
-
+> **Version** : 0.3.0 — Work in progress
 
 ---
 
 ## Introduction
 
-Aqua est un langage compilé minimaliste dont le compilateur génère de l'assembleur x86-64 (Linux). Il est conçu pour être simple, explicite et bas niveau.
+Aqua est un langage compilé minimaliste dont le compilateur génère de l'assembleur x86-64 (Linux). Il vise la simplicité et l'apprentissage de la compilation basse niveau.
 
 ---
 
-## Compilation
+## Compilation et exécution
 
 ```bash
-./aqua <fichier.aq>        # compile et génère ./src/output
-./src/output               # exécuter le binaire
+# Compiler le fichier source
+./build/aqua <fichier.aq>
+
+# Exécuter le binaire généré
+./src/output
+
+# Valeur de retour
+echo $?
 ```
+
+La sortie assembleur est dans `./src/output.asm` et le binaire final est `./src/output`.
 
 ---
 
 ## Syntaxe
 
-### Déclarer une variable
+### Variables et assignation
 
-```
-identifier = entierLittéral
-```
-
-**Exemples :**
+- Identifiant : lettre initiale + lettres/chiffres (`[a-zA-Z][a-zA-Z0-9]*`).
+- Assignation : `identifiant = expression`.
+- Une variable est déclarée à la première affectation.
 
 ```
 x = 10
-age = 25
-result = 0
+y = x + 5
 ```
-
-- L'identifiant doit commencer par une lettre et peut contenir des lettres et des chiffres.
-- La valeur peut être un entier littéral (0–254), un identifiant existant ou une expression.
-- Chaque instruction doit être sur sa propre ligne.
-- Opérateurs arithmétiques supportés : `+`, `-`, `*`, `/`, `%`, `**`, parenthèses.
-- Opérateurs de comparaison supportés : `==`, `!=`, `<`, `<=`, `>`, `>=` (résultat 0/1).
-- Opérateurs unaires supportés en suffixe : `++` et `--`.
-
----
 
 ### Expressions
 
-```
-x = 5
-x = x + 10
-x = x * 2
-x = x - 3
-x = (x + 1) * 2
-x = 8 > 7          ; valeur 1
-y = x == 1         ; valeur 1 ou 0
-return x
-```
-
-### Retourner une valeur
+- Nombres : `0`, `1`, `42`, ...
+- Identifiants : `x`, `result`, ...
+- Parenthèses : `( ... )`
+- Arithmétique : `+`, `-`, `*`, `/`, `%`, `**`
+- Comparaisons : `==`, `!=`, `<`, `<=`, `>`, `>=`
+- Postfixe : `x++`, `x--`
 
 ```
-return entierLittéral
-return identifier
+x = (2 + 3) * 4
+x = x ** 3
+x = x % 5
+flag = x > 10
 ```
 
-**Exemples :**
+### Contrôle de flux
+
+- `if (cond) { ... } [else { ... }]`
+- `while (cond) { ... }`
+- `for (i = init; cond; incr) { ... }`
+
+Exemple :
 
 ```
-return 69
+i = 0
+sum = 0
+while (i < 5) {
+    sum = sum + i
+    i++
+}
+if (sum >= 10) {
+    sum = sum + 1
+} else {
+    sum = sum + 2
+}
+return sum
 ```
 
+### Retour
+
 ```
-x = 42
-return x
+return expression
 ```
 
-- La valeur de retour est récupérable via `echo $?` dans le shell.
-- La valeur doit être comprise entre **0 et 254**.
-- `return` doit être la dernière instruction du programme.
+- Le programme termine via syscall `exit` (n° 60).
+- Valeur de retour 0–255 (shell `echo $?`).
 
 ---
 
-## Exemple complet
+## Gestion de la pile
+
+- `rbp` et `rsp` sont configurés au début (`push rbp`, `mov rbp,rsp`).
+- Les assignations sauvegardent les valeurs sur la pile (`push rax`) et lisent avec des offsets (`[rbp - N]`).
+- Les blocs `{}` libèrent les variables locales (`pop rax`).
+
+---
+
+## Limitations actuelles
+
+- Pas de fonctions nommées (programme mono-bloc / entrée unique).
+- Pas de types autres qu'entier (ato sur 64 bits signés).
+- Gestion simple des erreurs : expression invalide, identifiant non déclaré, bloc mal fermés.
+
+---
+
+## Exemple simple
 
 ```
 x = 42
 return x
 ```
+
+---
+
+## Exemple avancé
+
+```
+result = 0
+for (i = 0; i < 5; i++) {
+    result = result + i
+}
+return result
+```
+
+---
+
+## Génération d'assembleur
+
+Le compilateur produit `src/output.asm` en x86-64 NASM, puis invoque :
 
 ```bash
-./aqua ./src/mon_programme.aq
-./src/output
-echo $?   # → 42
-```
-
----
-
-## Limitations actuelles (v0.1.0)
-
-
-- Pas de conditions (`if`, `else`) au niveau du flux de contrôle.
-- Pas de fonctions multi-lignes (une seule entrée/exécution).
-- Les valeurs attendues pour `return` restent 0–254 pour correspondre à `echo $?`.
-- Un seul fichier source par compilation.
-
----
-
-## Assembleur généré
-
-Pour le programme suivant :
-
-```
-x = 5
-return x
-```
-
-Aqua génère :
-
-```nasm
-section .text
-global _start
-_start:
-    push rbp
-    mov rbp, rsp
-    mov rax, 5
-    push rax              ; x = 5 (stack variable)
-    mov rax, 60
-    mov rdi, [rbp - 8]   ; return x
-    syscall
+nasm -f elf64 ./src/output.asm -o ./src/output.o
+ld ./src/output.o -o ./src/output -no-pie
 ```
 
 ---
