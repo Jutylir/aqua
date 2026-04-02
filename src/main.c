@@ -1,5 +1,5 @@
 /*TODO:
-Créer des boucles for et while
+Améliorer la tokenization des symboles pour eviter de devoir mettre un espace entre 2 token de symbole différent ( ex: ) } -> )} )
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +53,6 @@ int main(int argc, char *argv[])
     // Display the tokens
     afficherTokens(&tokenList);
 
-    //fclose(output_file);
     generator(input_file, tokenList);
 
     freeTokenList(&tokenList);
