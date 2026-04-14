@@ -272,41 +272,77 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
             }
         }
     }
-    else if (strcmp(current->type, "SYMBOL") == 0 && strcmp(current->value, "{") == 0)
+    else if (strcmp(current->type, "SYMBOL") == 0)
     {
-        int currentStackPos = *stackPosCount;
-        current = current->next; // sauter "{"
-        while (current != NULL && !(strcmp(current->type, "SYMBOL") == 0 && strcmp(current->value, "}") == 0))
+        if (strcmp(current->value, "{") == 0)
         {
-            current = tokenTreater(current, identifierListe, output_file, input_file, boucleCount, stackPosCount);
-        }
-        // Libérer les variables locales à ce bloc
-        for (int i = currentStackPos; i < *stackPosCount; i++)
-        {
-            fprintf(output_file, "   pop rax\n");
-        }
-        struct identifier *currentIdentifier = identifierListe->head;
-        struct identifier *prevIdentifier = NULL;
-        while (currentIdentifier != NULL)
-        {
-            if (currentIdentifier->stackPos >= currentStackPos)
+            int currentStackPos = *stackPosCount;
+            current = current->next; // sauter "{"
+            while (current != NULL && !(strcmp(current->type, "SYMBOL") == 0 && strcmp(current->value, "}") == 0))
             {
-                struct identifier *toFree = currentIdentifier;
-                if (prevIdentifier == NULL)
+                current = tokenTreater(current, identifierListe, output_file, input_file, boucleCount, stackPosCount);
+            }
+            // Libérer les variables locales à ce bloc
+            for (int i = currentStackPos; i < *stackPosCount; i++)
+            {
+                fprintf(output_file, "   pop rax\n");
+            }
+            struct identifier *currentIdentifier = identifierListe->head;
+            struct identifier *prevIdentifier = NULL;
+            while (currentIdentifier != NULL)
+            {
+                if (currentIdentifier->stackPos >= currentStackPos)
                 {
-                    identifierListe->head = currentIdentifier->next;
+                    struct identifier *toFree = currentIdentifier;
+                    if (prevIdentifier == NULL)
+                    {
+                        identifierListe->head = currentIdentifier->next;
+                    }
+                    else
+                    {
+                        prevIdentifier->next = currentIdentifier->next;
+                    }
+                    currentIdentifier = currentIdentifier->next;
+                    free(toFree);
                 }
                 else
                 {
-                    prevIdentifier->next = currentIdentifier->next;
+                    prevIdentifier = currentIdentifier;
+                    currentIdentifier = currentIdentifier->next;
                 }
-                currentIdentifier = currentIdentifier->next;
-                free(toFree);
+            }
+        }
+        else if (strcmp(current->value, "*") == 0)
+        {
+            if (strcmp(current->next->type, "IDENTIFIER") != 0)
+            {
+                fprintf(stderr, "Error: Expected identifier after '*'\n");
+                fclose(input_file);
+                exit(EXIT_FAILURE);
+            }
+            current = current->next; // sauter "*"
+            if (isDeclared(current->value, identifierListe) == 1)
+            {
+                position = stackPos(current->value, identifierListe);
+                current = parser(current->next->next, identifierListe, output_file, boucleCount);
+                fprintf(output_file, "   mov rbx, [rbp - %d]\n", position * 8);
+                fprintf(output_file, "   mov qword [rbx], rax\n");
             }
             else
             {
-                prevIdentifier = currentIdentifier;
-                currentIdentifier = currentIdentifier->next;
+                ajouterIdentifier(identifierListe, current->value, stackPosCount);
+                current = parser(current->next->next, identifierListe, output_file, boucleCount);
+                fprintf(output_file, "   mov rdx, rax\n");
+                fprintf(output_file, "   mov rax, 12\n");
+                fprintf(output_file, "   syscall\n");
+                fprintf(output_file, "   push rax\n");
+                fprintf(output_file, "   add rax, 8\n");
+                fprintf(output_file, "   mov rdi, rax\n");
+                fprintf(output_file, "   mov rax, 12\n");
+                fprintf(output_file, "   syscall\n");
+                fprintf(output_file, "   mov rax, [rbp - %d]\n", (*stackPosCount) * 8);
+                fprintf(output_file, "   mov qword [rax], rdx\n");
+                (*stackPosCount)++;
             }
         }
     }
