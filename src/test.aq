@@ -1,8 +1,2 @@
 a = 5
-while a < 10 {
-    a++
-}
-for (i=0; i<5*3+6; i++){
-    a++
-}
-return a
+return a + &a

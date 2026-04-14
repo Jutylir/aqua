@@ -1,5 +1,6 @@
 /* TODO:
 Pouvoir déclarer des listes/tableaux.
+-> Pour cela il faut d'abord créer la notion de pointeur
 */
 #include <stdio.h>
 #include <stdlib.h>
