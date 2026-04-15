@@ -1,6 +1,6 @@
 /* TODO:
 Pouvoir déclarer des listes/tableaux.
--> Pour cela il faut d'abord créer la notion de pointeur
+-> Définition des types de données (int et char)
 */
 #include <stdio.h>
 #include <stdlib.h>
