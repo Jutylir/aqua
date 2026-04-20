@@ -49,12 +49,13 @@ int isEndOfLine(struct Token *token)
     }
 }
 
-void ajouterIdentifier(struct identifierListe *liste, char name[1024], int *stackPos)
+void ajouterIdentifier(struct identifierListe *liste, char name[1024], int *stackPos, char type[1024])
 {
     struct identifier *current = liste->head;
     struct identifier *newIdentifier = (struct identifier *)malloc(sizeof(struct identifier));
     newIdentifier->stackPos = *stackPos;
     strcpy(newIdentifier->name, name);
+    strcpy(newIdentifier->type, type);
     if (current == NULL)
     {
         liste->head = newIdentifier;
@@ -84,6 +85,7 @@ void freeIdentifierList(struct identifierListe *liste)
 struct Token *tokenTreater(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, FILE *input_file, int *boucleCount, int *stackPosCount)
 {
     int position;
+    char type[1024];
     if (strcmp(current->type, "STATEMENT") == 0)
     {
         if (strcmp(current->value, "return") == 0)
@@ -175,7 +177,8 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
                     int forVarPos = *stackPosCount;
                     if (current != NULL && strcmp(current->next->value, "=") == 0)
                     {
-                        ajouterIdentifier(identifierListe, current->value, stackPosCount);
+                        strcpy(type, "int");
+                        ajouterIdentifier(identifierListe, current->value, stackPosCount, type);
                         (*stackPosCount)++;
                         current = current->next->next; // sauter "IDENTIFIER" et "="
                         current = parser(current, identifierListe, output_file, boucleCount);
@@ -252,18 +255,53 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
         {
             if (strcmp(current->next->value, "=") == 0)
             {
+
                 if (isDeclared(current->value, identifierListe) == 1)
                 {
                     position = stackPos(current->value, identifierListe);
-                    current = parser(current->next->next, identifierListe, output_file, boucleCount);
-                    fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
+                    if (strcmp(current->next->next->type, "STRING") == 0)
+                    {
+                        fprintf(output_file, "   mov rax, %d\n", 12);
+                        fprintf(output_file, "   syscall\n");
+                        fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
+                        fprintf(output_file, "   add rax, %ld\n", strlen(current->next->next->value) + 1);
+                        fprintf(output_file, "   mov rdi, rax\n");
+                        fprintf(output_file, "   mov rax, 12\n");
+                        fprintf(output_file, "   syscall\n");
+                        fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
+                        fprintf(output_file, "   mov QWORD [rax], '%s'\n", current->next->next->value);
+                    }
+                    else
+                    {
+                        current = parser(current->next->next, identifierListe, output_file, boucleCount);
+                        fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
+                    }
                 }
                 else
                 {
-                    ajouterIdentifier(identifierListe, current->value, stackPosCount);
-                    current = parser(current->next->next, identifierListe, output_file, boucleCount);
-                    fprintf(output_file, "   push rax\n");
-                    (*stackPosCount)++;
+                    if (strcmp(current->next->next->type, "STRING") == 0)
+                    {
+                        strcpy(type, "string");
+                        ajouterIdentifier(identifierListe, current->value, stackPosCount, type);
+                        fprintf(output_file, "   mov rax, %d\n", 12);
+                        fprintf(output_file, "   syscall\n");
+                        fprintf(output_file, "   mov [rbp - %d], rax\n", (*stackPosCount) * 8);
+                        fprintf(output_file, "   add rax, %ld\n", strlen(current->next->next->value) + 1);
+                        fprintf(output_file, "   mov rdi, rax\n");
+                        fprintf(output_file, "   mov rax, 12\n");
+                        fprintf(output_file, "   syscall\n");
+                        fprintf(output_file, "   mov rax, [rbp - %d]\n", (*stackPosCount) * 8);
+                        fprintf(output_file, "   mov QWORD [rax], '%s'\n", current->next->next->value);
+                        (*stackPosCount)++;
+                    }
+                    else
+                    {
+                        strcpy(type, "int");
+                        ajouterIdentifier(identifierListe, current->value, stackPosCount, type);
+                        current = parser(current->next->next, identifierListe, output_file, boucleCount);
+                        fprintf(output_file, "   push rax\n");
+                        (*stackPosCount)++;
+                    }
                 }
             }
             else
@@ -330,7 +368,8 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
             }
             else
             {
-                ajouterIdentifier(identifierListe, current->value, stackPosCount);
+                strcpy(type, "int*");
+                ajouterIdentifier(identifierListe, current->value, stackPosCount, type);
                 current = parser(current->next->next, identifierListe, output_file, boucleCount);
                 fprintf(output_file, "   mov rdx, rax\n");
                 fprintf(output_file, "   mov rax, 12\n");
@@ -375,12 +414,14 @@ void generator(FILE *input_file, struct TokenListe tokenList)
     int stackPosCount = 1;
 
     FILE *output_file = fopen("./src/output.asm", "w");
-    fprintf(output_file, "section .text\nglobal _start\n_start:\n   push rbp\n   mov rbp, rsp\n");
+    fprintf(output_file, "section .bss\n   buffer resb 20\nsection .text\nglobal _start\n_print:lea rdi, [buffer + 19]\n   mov rcx, 0\n   mov rbx, 10\nloop1:cqo\n   idiv rbx\n   add rdx, 0x30\n   mov [rdi], dl\n   dec rdi\n   inc rcx\n   test rax, rax\n   jnz loop1\n   mov rax, 1\n   mov rsi, rdi\n   mov rdx, rcx\n   mov rdi, 1\n   syscall\n   ret\n_start:\n   push rbp\n   mov rbp, rsp\n");
 
     while (current != NULL)
     {
         current = tokenTreater(current, &identifierListe, output_file, input_file, &boucleCount, &stackPosCount);
     }
+
+    fprintf(output_file, "   mov rax, 60\n   syscall\n");
 
     freeIdentifierList(&identifierListe);
     fclose(output_file);
