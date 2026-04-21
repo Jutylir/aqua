@@ -5,6 +5,13 @@
 #include "headers/structs.h"
 #include "headers/parser.h"
 
+struct nativeFunction
+{
+    char name[1024];
+    char assembly[4096];
+    int argCount;
+};
+
 int isDeclared(char *name, struct identifierListe *liste)
 {
     struct identifier *current = liste->head;
@@ -80,6 +87,34 @@ void freeIdentifierList(struct identifierListe *liste)
         current = next;
     }
     liste->head = NULL;
+}
+
+int isNativeUsed(char *name, struct TokenListe tokenList)
+{
+    struct Token *current = tokenList.head;
+    while (current != NULL)
+    {
+        if (strcmp(current->type, "NATIVE_FUNCTION") == 0 && strcmp(current->value, name) == 0)
+        {
+            return 1;
+        }
+        current = current->next;
+    }
+    return 0;
+}
+
+char *getIdentifierType(char *name, struct identifierListe *liste)
+{
+    struct identifier *current = liste->head;
+    while (current != NULL)
+    {
+        if (strcmp(current->name, name) == 0)
+        {
+            return current->type;
+        }
+        current = current->next;
+    }
+    return "INT"; // type par défaut
 }
 
 struct Token *tokenTreater(struct Token *current, struct identifierListe *identifierListe, FILE *output_file, FILE *input_file, int *boucleCount, int *stackPosCount)
@@ -385,6 +420,58 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
             }
         }
     }
+    else if (strcmp(current->type, "NATIVE_FUNCTION") == 0)
+    {
+        if (strcmp(current->value, "print") == 0)
+        {
+            current = current->next;
+            if (current != NULL && strcmp(current->value, "(") != 0)
+            {
+                fprintf(stderr, "Error: Expected '(' after print\n");
+                fclose(input_file);
+                exit(EXIT_FAILURE);
+            }
+            if (strcmp(current->next->type, "STRING") == 0)
+            {
+                fprintf(output_file, "   lea rdi, [buffer]\n");
+                for (int i = 0; current->next->value[i] != '\0'; i++)
+                {
+                    fprintf(output_file, "   mov byte [rdi + %d], '%c'\n", i, current->next->value[i]);
+                }
+                fprintf(output_file, "   mov byte [rdi + %ld], 0\n", strlen(current->next->value));
+                fprintf(output_file, "   call _print_string\n");
+                return current->next->next;
+            }
+            else if (strcmp(current->next->type, "IDENTIFIER") == 0)
+            {
+                if (strcmp(getIdentifierType(current->next->value, identifierListe), "string") == 0)
+                {
+                    int position = stackPos(current->next->value, identifierListe);
+                    fprintf(output_file, "   mov rdi, [rbp - %d]\n", position * 8);
+                    fprintf(output_file, "   call _print_string\n");
+                }
+                else if (strcmp(getIdentifierType(current->next->value, identifierListe), "int*") == 0)
+                {
+                    int position = stackPos(current->next->value, identifierListe);
+                    fprintf(output_file, "   mov rdi, rbp\n");
+                    fprintf(output_file, "   sub rdi, %d\n", position * 8);
+                    fprintf(output_file, "   call _print_hex\n");
+                }
+                else
+                {
+                    current = parser(current, identifierListe, output_file, boucleCount);
+                    fprintf(output_file, "   mov rdi, rax\n");
+                    fprintf(output_file, "   call _print_number\n");
+                }
+            }
+            else
+            {
+                current = parser(current, identifierListe, output_file, boucleCount);
+                fprintf(output_file, "   mov rdi, rax\n");
+                fprintf(output_file, "   call _print_number\n");
+            }
+        }
+    }
 
     if (current == NULL)
     {
@@ -413,15 +500,102 @@ void generator(FILE *input_file, struct TokenListe tokenList)
     int position;
     int stackPosCount = 1;
 
+    struct nativeFunction nativeFunctions[] = {
+        {"print",
+         "_print_number:\n"
+         "   mov rax, rdi\n"
+         "   lea rdi, [buffer + 18]\n"
+         "   mov byte [buffer + 19], 10\n"
+         "   mov rcx, 1\n"
+         "   mov rbx, 10\n"
+         "loop1:\n"
+         "   cqo\n"
+         "   idiv rbx\n"
+         "   add rdx, 0x30\n"
+         "   mov [rdi], dl\n"
+         "   dec rdi\n"
+         "   inc rcx\n"
+         "   test rax, rax\n"
+         "   jnz loop1\n"
+         "   inc rdi\n"
+         "   mov rax, 1\n"
+         "   mov rsi, rdi\n"
+         "   mov rdx, rcx\n"
+         "   mov rdi, 1\n"
+         "   syscall\n"
+         "   ret\n"
+         "_print_string:\n"
+         "   mov rcx, 0\n"
+         "_strlen_loop:\n"
+         "   cmp byte [rdi + rcx], 0\n"
+         "   je _strlen_done\n"
+         "   inc rcx\n"
+         "   jmp _strlen_loop\n"
+         "_strlen_done:\n"
+         "   mov byte [rdi + rcx], 10\n"
+         "   inc rcx\n"
+         "   mov rsi, rdi\n"
+         "   mov rdx, rcx\n"
+         "   mov rax, 1\n"
+         "   mov rdi, 1\n"
+         "   syscall\n"
+         "   ret\n"
+         "_print_hex:\n"
+         "   mov rax, rdi\n"
+         "   mov byte [buffer], '0'\n"
+         "   mov byte [buffer + 1], 'x'\n"
+         "   lea rsi, [buffer + 17]\n"
+         "   mov rcx, 16\n"
+         "_print_hex_loop:\n"
+         "   mov rdx, rax\n"
+         "   and rdx, 0xF\n"
+         "   cmp rdx, 9\n"
+         "   jle _print_hex_digit\n"
+         "   add rdx, 'a' - 10\n"
+         "   jmp _print_hex_store\n"
+         "_print_hex_digit:\n"
+         "   add rdx, '0'\n"
+         "_print_hex_store:\n"
+         "   mov [rsi], dl\n"
+         "   dec rsi\n"
+         "   shr rax, 4\n"
+         "   dec rcx\n"
+         "   jnz _print_hex_loop\n"
+         "   mov byte [buffer + 18], 10\n"
+         "   mov rax, 1\n"
+         "   mov rdi, 1\n"
+         "   lea rsi, [buffer]\n"
+         "   mov rdx, 19\n"
+         "   syscall\n"
+         "   ret\n",
+         1},
+        {"", "", 0}};
+
     FILE *output_file = fopen("./src/output.asm", "w");
-    fprintf(output_file, "section .bss\n   buffer resb 20\nsection .text\nglobal _start\n_print:lea rdi, [buffer + 19]\n   mov rcx, 0\n   mov rbx, 10\nloop1:cqo\n   idiv rbx\n   add rdx, 0x30\n   mov [rdi], dl\n   dec rdi\n   inc rcx\n   test rax, rax\n   jnz loop1\n   mov rax, 1\n   mov rsi, rdi\n   mov rdx, rcx\n   mov rdi, 1\n   syscall\n   ret\n_start:\n   push rbp\n   mov rbp, rsp\n");
+    if (isNativeUsed("print", tokenList) == 1)
+    {
+        fprintf(output_file, "section .bss\n");
+        fprintf(output_file, "   buffer resb 20\n");
+    }
+    fprintf(output_file, "section .text\n");
+    fprintf(output_file, "global _start\n");
+    for (int i = 0; nativeFunctions[i].argCount != 0; i++)
+    {
+        if (isNativeUsed(nativeFunctions[i].name, tokenList) == 1)
+        {
+            fprintf(output_file, "%s", nativeFunctions[i].assembly);
+        }
+    }
+    fprintf(output_file, "_start:\n");
+    fprintf(output_file, "   push rbp\n");
+    fprintf(output_file, "   mov rbp, rsp\n");
 
     while (current != NULL)
     {
         current = tokenTreater(current, &identifierListe, output_file, input_file, &boucleCount, &stackPosCount);
     }
 
-    fprintf(output_file, "   mov rax, 60\n   syscall\n");
+    fprintf(output_file, "   mov rax, 60\n   mov rdi, 0\n   syscall\n");
 
     freeIdentifierList(&identifierListe);
     fclose(output_file);

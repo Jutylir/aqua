@@ -50,6 +50,18 @@ int isStatement(char *value, char **statements)
     return 0;
 }
 
+int isNativeFunction(char *value, char **nativeFunctions)
+{
+    for (int i = 0; nativeFunctions[i] != NULL; i++)
+    {
+        if (strcmp(nativeFunctions[i], value) == 0)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int isSymbol(char *value, char **symbols)
 {
     for (int i = 0; symbols[i] != NULL; i++)
@@ -78,6 +90,7 @@ struct TokenListe tokenizer(FILE *input_file)
     }
 
     char *statements[] = {"return", "if", "else", "for", "while", NULL};
+    char *nativeFunctions[] = {"print", NULL};
     char *symbols[] = {"=", "+", "-", "/", "\\", "'", "''", "\"", "\"\"", "&", "{", "}", "{}", "(", ")", "*", "()", "**", "%", ".", "!", ">", ">=", "<", "<=", "++", "--", "+=", "-=", "[", "]", "[]", "==", "!=", ";", NULL};
 
     char tokenType[1024];
@@ -199,6 +212,11 @@ struct TokenListe tokenizer(FILE *input_file)
             if (isStatement(stringify(buffer), statements) == 1)
             {
                 strcpy(tokenType, "STATEMENT");
+                strcpy(tokenValue, stringify(buffer));
+                ajouterToken(&tokenList, tokenType, tokenValue);
+            }else if (isNativeFunction(stringify(buffer), nativeFunctions) == 1)
+            {
+                strcpy(tokenType, "NATIVE_FUNCTION");
                 strcpy(tokenValue, stringify(buffer));
                 ajouterToken(&tokenList, tokenType, tokenValue);
             }
