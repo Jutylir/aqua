@@ -15,6 +15,7 @@ struct Token
 {
     char type[1024];
     char value[1024];
+    int stringId;
     struct Token *next;
 };
 

@@ -11,7 +11,7 @@ void ajouterToken(struct TokenListe *liste, char type[1024], char value[1024])
     strcpy(newToken->type, type);
     strcpy(newToken->value, value);
     newToken->next = NULL;
-
+    newToken->stringId = -1;
     if (current == NULL)
     {
         liste->head = newToken;
