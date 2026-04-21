@@ -296,15 +296,8 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
                     position = stackPos(current->value, identifierListe);
                     if (strcmp(current->next->next->type, "STRING") == 0)
                     {
-                        fprintf(output_file, "   mov rax, %d\n", 12);
-                        fprintf(output_file, "   syscall\n");
+                        fprintf(output_file, "   lea rax, str%d\n", current->next->next->stringId);
                         fprintf(output_file, "   mov [rbp - %d], rax\n", position * 8);
-                        fprintf(output_file, "   add rax, %ld\n", strlen(current->next->next->value) + 1);
-                        fprintf(output_file, "   mov rdi, rax\n");
-                        fprintf(output_file, "   mov rax, 12\n");
-                        fprintf(output_file, "   syscall\n");
-                        fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
-                        fprintf(output_file, "   mov QWORD [rax], '%s'\n", current->next->next->value);
                     }
                     else
                     {
@@ -318,15 +311,9 @@ struct Token *tokenTreater(struct Token *current, struct identifierListe *identi
                     {
                         strcpy(type, "string");
                         ajouterIdentifier(identifierListe, current->value, stackPosCount, type);
-                        fprintf(output_file, "   mov rax, %d\n", 12);
-                        fprintf(output_file, "   syscall\n");
-                        fprintf(output_file, "   mov [rbp - %d], rax\n", (*stackPosCount) * 8);
-                        fprintf(output_file, "   add rax, %ld\n", strlen(current->next->next->value) + 1);
-                        fprintf(output_file, "   mov rdi, rax\n");
-                        fprintf(output_file, "   mov rax, 12\n");
-                        fprintf(output_file, "   syscall\n");
-                        fprintf(output_file, "   mov rax, [rbp - %d]\n", (*stackPosCount) * 8);
-                        fprintf(output_file, "   mov QWORD [rax], '%s'\n", current->next->next->value);
+                        current = current->next->next;
+                        fprintf(output_file, "   lea rax, str%d\n", current->stringId);
+                        fprintf(output_file, "   push rax\n");
                         (*stackPosCount)++;
                     }
                     else
@@ -572,11 +559,40 @@ void generator(FILE *input_file, struct TokenListe tokenList)
         {"", "", 0}};
 
     FILE *output_file = fopen("./src/output.asm", "w");
+
     if (isNativeUsed("print", tokenList) == 1)
     {
         fprintf(output_file, "section .bss\n");
         fprintf(output_file, "   buffer resb 20\n");
     }
+
+    int stringCount = 0;
+    struct Token *tmp = tokenList.head;
+    
+    int hasStrings = 0;
+    while (tmp != NULL) {
+        if (strcmp(tmp->type, "STRING") == 0) {
+            hasStrings = 1;
+            break;
+        }
+        tmp = tmp->next;
+    }
+
+    if (hasStrings) {
+        fprintf(output_file, "section .data\n");
+        tmp = tokenList.head;
+        while (tmp != NULL)
+        {
+            if (strcmp(tmp->type, "STRING") == 0)
+            {
+                fprintf(output_file, "   str%d db \"%s\", 0, 0\n", stringCount, tmp->value);
+                tmp->stringId = stringCount;  // ← stocker l'id dans le token
+                stringCount++;
+            }
+            tmp = tmp->next;
+        }
+    }
+
     fprintf(output_file, "section .text\n");
     fprintf(output_file, "global _start\n");
     for (int i = 0; nativeFunctions[i].argCount != 0; i++)
