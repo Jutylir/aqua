@@ -1,2 +1,2 @@
-a = "coco"
-
+*a = 5
+print(*a)

@@ -1,6 +1,6 @@
 /* TODO:
 Pouvoir déclarer des listes/tableaux.
--> Définition des types de données (int et char)
+-> Création de la fonction print() pour pouvoir debugger
 */
 #include <stdio.h>
 #include <stdlib.h>

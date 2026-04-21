@@ -5,6 +5,7 @@ struct identifier
 {
     char name[1024];
     int stackPos;
+    char type[1024];
     struct identifier *next;
 };
 
