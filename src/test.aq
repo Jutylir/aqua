@@ -1,3 +1,5 @@
-a = "hello"
-a = "Hello World"
-print(a)
+a[3]
+for (i=0; i<3; i++){
+    a[i] = i
+    print(a[i])
+}

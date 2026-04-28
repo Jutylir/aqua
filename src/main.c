@@ -1,6 +1,5 @@
 /* TODO:
 Pouvoir déclarer des listes/tableaux.
--> Création de la fonction print() pour pouvoir debugger
 */
 #include <stdio.h>
 #include <stdlib.h>
