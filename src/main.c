@@ -1,5 +1,4 @@
-/* TODO:
-Pouvoir déclarer des listes/tableaux.
+/* Version 1.0.0 - A simple compiler for a custom programming language, written in C.
 */
 #include <stdio.h>
 #include <stdlib.h>
