@@ -11,7 +11,7 @@ void ajouterToken(struct TokenListe *liste, char type[1024], char value[1024])
     strcpy(newToken->type, type);
     strcpy(newToken->value, value);
     newToken->next = NULL;
-
+    newToken->stringId = -1;
     if (current == NULL)
     {
         liste->head = newToken;
@@ -50,6 +50,18 @@ int isStatement(char *value, char **statements)
     return 0;
 }
 
+int isNativeFunction(char *value, char **nativeFunctions)
+{
+    for (int i = 0; nativeFunctions[i] != NULL; i++)
+    {
+        if (strcmp(nativeFunctions[i], value) == 0)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int isSymbol(char *value, char **symbols)
 {
     for (int i = 0; symbols[i] != NULL; i++)
@@ -78,6 +90,7 @@ struct TokenListe tokenizer(FILE *input_file)
     }
 
     char *statements[] = {"return", "if", "else", "for", "while", NULL};
+    char *nativeFunctions[] = {"print", NULL};
     char *symbols[] = {"=", "+", "-", "/", "\\", "'", "''", "\"", "\"\"", "&", "{", "}", "{}", "(", ")", "*", "()", "**", "%", ".", "!", ">", ">=", "<", "<=", "++", "--", "+=", "-=", "[", "]", "[]", "==", "!=", ";", NULL};
 
     char tokenType[1024];
@@ -134,29 +147,55 @@ struct TokenListe tokenizer(FILE *input_file)
         }
         else if (ispunct(c))
         {
-            // SYMBOL : lecture intelligente pour ==, !=, <=, >=, ++, --, +=, -=
-            int first = c;
-            int second = fgetc(input_file);
-
-            if (second != EOF)
+            if (c == '"')
             {
-                char twoChars[3] = {(char)first, (char)second, '\0'};
-                if (isSymbol(twoChars, symbols))
+                // STRING : lecture d'une chaîne de caractères entre guillemets
+                c = fgetc(input_file);
+                while (c != '"' && c != EOF)
                 {
-                    buffer[i++] = first;
-                    buffer[i++] = second;
+                    buffer[i++] = c;
                     c = fgetc(input_file);
+                }
+                if (c == '"')
+                {
+                    buffer[i] = '\0';
+                    i = 0;
+                    strcpy(tokenType, "STRING");
+                    strcpy(tokenValue, stringify(buffer));
+                    ajouterToken(&tokenList, tokenType, tokenValue);
+                    c = fgetc(input_file);
+                    continue;
+                }else{
+                    fprintf(stderr, "Erreur lexicale : chaîne de caractères non terminée\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else
+            {
+                // SYMBOL : lecture intelligente pour ==, !=, <=, >=, ++, --, +=, -=
+                int first = c;
+                int second = fgetc(input_file);
+
+                if (second != EOF)
+                {
+                    char twoChars[3] = {(char)first, (char)second, '\0'};
+                    if (isSymbol(twoChars, symbols))
+                    {
+                        buffer[i++] = first;
+                        buffer[i++] = second;
+                        c = fgetc(input_file);
+                    }
+                    else
+                    {
+                        buffer[i++] = first;
+                        c = second;
+                    }
                 }
                 else
                 {
                     buffer[i++] = first;
                     c = second;
                 }
-            }
-            else
-            {
-                buffer[i++] = first;
-                c = second;
             }
         }
 
@@ -173,6 +212,11 @@ struct TokenListe tokenizer(FILE *input_file)
             if (isStatement(stringify(buffer), statements) == 1)
             {
                 strcpy(tokenType, "STATEMENT");
+                strcpy(tokenValue, stringify(buffer));
+                ajouterToken(&tokenList, tokenType, tokenValue);
+            }else if (isNativeFunction(stringify(buffer), nativeFunctions) == 1)
+            {
+                strcpy(tokenType, "NATIVE_FUNCTION");
                 strcpy(tokenValue, stringify(buffer));
                 ajouterToken(&tokenList, tokenType, tokenValue);
             }

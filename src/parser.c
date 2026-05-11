@@ -55,10 +55,18 @@ struct Token *parsePrimary(struct Token *current, struct identifierListe *identi
                     fprintf(output_file, "   dec rbx\n");
                     fprintf(output_file, "   mov [rbp - %d], rbx\n", position * 8);
                     return current->next->next;
+                }else if(strcmp(current->next->value, "[") == 0){
+                    current = parser(current->next->next, identifierListe, output_file, boucleCount);
+                    fprintf(output_file, "   mov rbx, [rbp - %d]\n", position * 8 + 8);
+                    fprintf(output_file, "   cmp rax, rbx\n");
+                    fprintf(output_file, "   jg _exit_failure\n");
+                    fprintf(output_file, "   mov rbx, [rbp - %d]\n", position * 8);
+                    fprintf(output_file, "   add rbx, rax\n");
+                    fprintf(output_file, "   mov rax, [rbx]\n");
+                    return current->next;
                 }
             }
 
-            // Pas de ++ ou -- : simple lecture
             fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
             return current->next;
         }
@@ -68,16 +76,38 @@ struct Token *parsePrimary(struct Token *current, struct identifierListe *identi
             exit(EXIT_FAILURE);
         }
     }
-    else if (strcmp(current->type, "SYMBOL") == 0 && strcmp(current->value, "(") == 0)
+    else if (strcmp(current->type, "SYMBOL") == 0)
     {
-        current = current->next; // sauter "("
-        current = parseExpression(current, identifierListe, output_file, boucleCount);
-        if (current != NULL && strcmp(current->value, ")") == 0)
+        if (strcmp(current->value, "(") == 0)
         {
-            return current->next; // sauter ")"
+            current = current->next; // sauter "("
+            current = parseExpression(current, identifierListe, output_file, boucleCount);
+            if (current != NULL && strcmp(current->value, ")") == 0)
+            {
+                return current->next; // sauter ")"
+            }
+            fprintf(stderr, "Error: Expected closing parenthesis\n");
+            exit(EXIT_FAILURE);
+        }else if(strcmp(current->value, "&") == 0){
+            current = current->next;
+            if(isDeclared(current->value, identifierListe) == 0){
+                fprintf(stderr, "Error: Undeclared identifier %s\n", current->value);
+                exit(EXIT_FAILURE);
+            }
+            int position = stackPos(current->value, identifierListe);
+            fprintf(output_file, "   lea rax, [rbp - %d]\n", position * 8);
+            return current->next;
+        }else if(strcmp(current->value, "*") == 0){
+            current = current->next;
+            if(isDeclared(current->value, identifierListe) == 0){
+                fprintf(stderr, "Error: Undeclared identifier %s\n", current->value);
+                exit(EXIT_FAILURE);
+            }
+            int position = stackPos(current->value, identifierListe);
+            fprintf(output_file, "   mov rax, [rbp - %d]\n", position * 8);
+            fprintf(output_file, "   mov rax, [rax]\n");
+            return current->next;
         }
-        fprintf(stderr, "Error: Expected closing parenthesis\n");
-        exit(EXIT_FAILURE);
     }
     fprintf(stderr, "Error: Unexpected token %s\n", current->value);
     exit(EXIT_FAILURE);

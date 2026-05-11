@@ -1,3 +1,6 @@
+/* TODO:
+Pouvoir déclarer des listes/tableaux.
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,7 +51,7 @@ int main(int argc, char *argv[])
     struct TokenListe tokenList = tokenizer(input_file);
 
     // Display the tokens
-    afficherTokens(&tokenList);
+    //afficherTokens(&tokenList);
 
     generator(input_file, tokenList);
 

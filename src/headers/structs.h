@@ -5,6 +5,7 @@ struct identifier
 {
     char name[1024];
     int stackPos;
+    char type[1024];
     struct identifier *next;
 };
 
@@ -17,6 +18,7 @@ struct Token
 {
     char type[1024];
     char value[1024];
+    int stringId;
     struct Token *next;
 };
 
