@@ -1,6 +1,6 @@
 # Aqua Language Documentation
 
-> **Version** : 0.3.0 — Work in progress
+> **Version** : 1.0.0 — Première version stable
 
 ---
 
@@ -32,12 +32,22 @@ La sortie assembleur est dans `./src/output.asm` et le binaire final est `./src/
 ### Variables et assignation
 
 - Identifiant : lettre initiale + lettres/chiffres (`[a-zA-Z][a-zA-Z0-9]*`).
+- Pointeur : * + Identifiant
+- Valeur pointé par un pointeur : * + Identifiant
 - Assignation : `identifiant = expression`.
+- Chaine de caractères : `"chaine de caractères"`
+- Liste : Identifiant + [expression]
 - Une variable est déclarée à la première affectation.
+- Il est nécessaire de déclarer un tableau avant d'affecter ses valeurs. 
+
 
 ```
 x = 10
-y = x + 5
+*y = 5
+z = x + *y
+a[3]
+a[0] = 0
+
 ```
 
 ### Expressions
@@ -88,6 +98,13 @@ return expression
 - Le programme termine via syscall `exit` (n° 60).
 - Valeur de retour 0–255 (shell `echo $?`).
 
+### Print
+
+```
+print(expression) OU print(chaine de caractère)
+```
+
+- Un pointeur est traité comme une chaine de caractère.
 ---
 
 ## Gestion de la pile

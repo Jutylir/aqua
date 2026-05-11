@@ -1,8 +1,5 @@
-a = 5
-while a < 10 {
-    a++
+a[3]
+for (i=0; i<3; i++){
+    a[i] = i
+    print(a[i])
 }
-for (i=0; i<5*3+6; i++){
-    a++
-}
-return a
